@@ -2,6 +2,10 @@ import Link from "next/link";
 import { asanaFetch } from "@/lib/asana/asana-client";
 import { calculateProgress } from "@/features/tax-pipeline/progress/calculate-progress";
 import { getClientStatus } from "@/features/tax-pipeline/progress/client-status";
+import {
+  getEnabledSeasonProjects,
+  resolveTaxSeason,
+} from "@/features/tax-pipeline/tax-seasons";
 import { ClientActionPanel } from "@/features/client-portal/components/ClientActionPanel";
 import { EstimatedCompletionCard } from "@/features/client-portal/components/EstimatedCompletionCard";
 import { HeroProgress } from "@/features/client-portal/components/HeroProgress";
@@ -10,7 +14,10 @@ import { NextStepCard } from "@/features/client-portal/components/NextStepCard";
 import { PortalFooter } from "@/features/client-portal/components/PortalFooter";
 import { PortalHeader } from "@/features/client-portal/components/PortalHeader";
 import { PrintButton } from "@/features/client-portal/components/PrintButton";
-import type { ClientPortalData } from "@/features/client-portal/types";
+import type {
+  ClientPortalData,
+  ClientPortalProgress,
+} from "@/features/client-portal/types";
 import { getEstimatedCompletionWindow } from "@/features/client-portal/utils/estimated-completion";
 import {
   CLIENT_PORTAL_STAGES,
@@ -50,15 +57,25 @@ type AsanaTask = {
     project?: {
       gid: string;
       name: string;
-    };
+    } | null;
 
     section?: {
       gid: string;
       name: string;
-    };
+    } | null;
   }>;
 
   custom_fields?: AsanaCustomField[];
+};
+
+type TaxReturnStatusPageProps = {
+  params: Promise<{
+    gid: string;
+  }>;
+
+  searchParams?: Promise<{
+    season?: string;
+  }>;
 };
 
 function getCustomFieldValue(
@@ -97,16 +114,27 @@ function formatDate(value: string | null | undefined): string {
 
 export default async function TaxReturnStatusPage({
   params,
-}: {
-  params: Promise<{ gid: string }>;
-}) {
+  searchParams,
+}: TaxReturnStatusPageProps) {
   const { gid } = await params;
+  const resolvedSearchParams = searchParams
+    ? await searchParams
+    : undefined;
 
-  const projectGid = process.env.ASANA_PROJECT_GID;
+  /**
+   * Supported examples:
+   *
+   * /tax-returns/123456
+   * /tax-returns/123456?season=2026
+   *
+   * Without a season query parameter, Salinas OS uses the active season.
+   */
+  const season = resolveTaxSeason(resolvedSearchParams?.season);
+  const enabledProjects = getEnabledSeasonProjects(season);
 
-  if (!projectGid) {
-    throw new Error("Missing ASANA_PROJECT_GID in .env.local");
-  }
+  const enabledProjectGids = new Set(
+    enabledProjects.map((project) => project.asanaProjectGid),
+  );
 
   const taskFields = [
     "gid",
@@ -134,9 +162,20 @@ export default async function TaxReturnStatusPage({
 
   const task = response.data;
 
-  const projectMembership = task.memberships?.find(
-    (membership) => membership.project?.gid === projectGid,
-  );
+  /**
+   * A task may belong to several Asana projects.
+   *
+   * Only a membership connected to one of the selected season's enabled
+   * projects may determine the client-facing progress.
+   */
+  const projectMembership = task.memberships?.find((membership) => {
+    const membershipProjectGid = membership.project?.gid;
+
+    return (
+      membershipProjectGid !== undefined &&
+      enabledProjectGids.has(membershipProjectGid)
+    );
+  });
 
   const asanaSectionName =
     projectMembership?.section?.name ?? "No section";
@@ -148,7 +187,8 @@ export default async function TaxReturnStatusPage({
     getCustomFieldValue(task.custom_fields, "Form") ?? "Tax Return";
 
   const taxYear =
-    getCustomFieldValue(task.custom_fields, "Tax Year") ?? "2025";
+    getCustomFieldValue(task.custom_fields, "Tax Year") ??
+    String(season.year - 1);
 
   const updatedDate = formatDate(task.modified_at);
 
@@ -156,7 +196,7 @@ export default async function TaxReturnStatusPage({
     clientStatus.stage,
   );
 
-  const portalProgress = {
+  const portalProgress: ClientPortalProgress = {
     progressPercent: clientStatus.progressPercent,
     stage: clientStatus.stage,
     headline: clientStatus.headline,
@@ -171,7 +211,9 @@ export default async function TaxReturnStatusPage({
       gid: task.gid,
       name: task.name,
     },
+
     progress: portalProgress,
+
     summary: {
       form,
       taxYear,
@@ -179,6 +221,7 @@ export default async function TaxReturnStatusPage({
       completedMilestones,
       totalMilestones: CLIENT_PORTAL_STAGES.length,
     },
+
     estimate: getEstimatedCompletionWindow(portalProgress),
   };
 
@@ -188,14 +231,14 @@ export default async function TaxReturnStatusPage({
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
           <div>
             <Link
-              href="/tax-returns"
+              href={`/tax-returns?season=${season.id}`}
               className="text-sm font-semibold text-blue-700 transition hover:text-blue-900"
             >
               ← Back to Tax Returns
             </Link>
 
             <p className="mt-1 text-sm text-slate-500">
-              Client Status Preview
+              Client Status Preview · {season.name}
             </p>
           </div>
 

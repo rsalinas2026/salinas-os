@@ -5,7 +5,14 @@ export interface ClientPortalProgress {
   description: string;
   nextStep: string;
   clientActionRequired: boolean;
-  clientActionMessage: string;
+
+  /**
+   * A client-facing instruction when action is required.
+   *
+   * This is null when the client does not currently need to provide
+   * information, documents, signatures, or another response.
+   */
+  clientActionMessage: string | null;
 }
 
 export interface ClientPortalStage {
