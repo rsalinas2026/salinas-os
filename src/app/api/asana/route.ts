@@ -1,31 +1,93 @@
-import { NextResponse } from "next/server";
-import { getAllProjectTasks } from "@/features/tax-pipeline/tax-pipeline.service";
+import { NextRequest, NextResponse } from "next/server";
 import { calculateProgress } from "@/features/tax-pipeline/progress/calculate-progress";
+import { getTaxSeasonTasks } from "@/features/tax-pipeline/tax-pipeline.service";
+import {
+  getEnabledSeasonProjects,
+  resolveTaxSeason,
+} from "@/features/tax-pipeline/tax-seasons";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const projectGid = process.env.ASANA_PROJECT_GID;
+    const requestedSeasonId =
+      request.nextUrl.searchParams.get("season");
 
-    if (!projectGid) {
-      throw new Error("Missing ASANA_PROJECT_GID in .env.local");
-    }
+    const season = resolveTaxSeason(requestedSeasonId);
+    const enabledProjects = getEnabledSeasonProjects(season);
 
-    const tasks = await getAllProjectTasks();
+    const collection = await getTaxSeasonTasks(season);
 
-    const enrichedTasks = tasks.map((task) => {
-      const projectMembership = task.memberships?.find(
-        (membership) => membership.project?.gid === projectGid,
-      );
+    const projectPriority = new Map(
+      enabledProjects.map((project, index) => [
+        project.asanaProjectGid,
+        index,
+      ]),
+    );
+
+    const enabledProjectGids = new Set(
+      enabledProjects.map((project) => project.asanaProjectGid),
+    );
+
+    const enrichedTasks = collection.tasks.map((task) => {
+      const eligibleMemberships = (task.memberships ?? [])
+        .filter((membership) => {
+          const membershipProjectGid =
+            membership.project?.gid ?? "";
+
+          return enabledProjectGids.has(membershipProjectGid);
+        })
+        .sort((a, b) => {
+          const aProjectGid = a.project?.gid ?? "";
+          const bProjectGid = b.project?.gid ?? "";
+
+          const aPriority =
+            projectPriority.get(aProjectGid) ??
+            Number.MAX_SAFE_INTEGER;
+
+          const bPriority =
+            projectPriority.get(bProjectGid) ??
+            Number.MAX_SAFE_INTEGER;
+
+          return aPriority - bPriority;
+        });
+
+      const selectedMembership = eligibleMemberships[0];
 
       const asanaSectionName =
-        projectMembership?.section?.name ?? "No section";
+        selectedMembership?.section?.name ?? "No section";
 
       const progress = calculateProgress(asanaSectionName);
 
       return {
         ...task,
+
         section: asanaSectionName,
         asanaSectionName,
+
+        sourceProject: selectedMembership?.project
+          ? {
+              gid: selectedMembership.project.gid,
+              name: selectedMembership.project.name,
+            }
+          : null,
+
+        seasonMemberships: eligibleMemberships.map(
+          (membership) => ({
+            project: membership.project
+              ? {
+                  gid: membership.project.gid,
+                  name: membership.project.name,
+                }
+              : null,
+
+            section: membership.section
+              ? {
+                  gid: membership.section.gid,
+                  name: membership.section.name,
+                }
+              : null,
+          }),
+        ),
+
         pipelineStage: progress.clientStage,
         clientStage: progress.clientStage,
         progressPercent: progress.progressPercent,
@@ -50,23 +112,45 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+
+      season: {
+        id: season.id,
+        year: season.year,
+        name: season.name,
+        status: season.status,
+      },
+
+      projects: enabledProjects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        asanaProjectGid: project.asanaProjectGid,
+        enabled: project.enabled,
+      })),
+
       counts: {
+        projects: enabledProjects.length,
         allRecords: enrichedTasks.length,
         taxReturns: taxReturns.length,
         nonTaxRecords: nonTaxRecords.length,
-        mapped: enrichedTasks.length - unmappedRecords.length,
+        mapped:
+          enrichedTasks.length - unmappedRecords.length,
         unmapped: unmappedRecords.length,
       },
+
       tasks: enrichedTasks,
       taxReturns,
       nonTaxRecords,
       unmappedRecords,
+
+      generatedAt: new Date().toISOString(),
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Unknown Asana error";
+      error instanceof Error
+        ? error.message
+        : "Unknown Asana error";
 
-    console.error("Failed to load tax returns:", error);
+    console.error("Failed to load tax-season data:", error);
 
     return NextResponse.json(
       {

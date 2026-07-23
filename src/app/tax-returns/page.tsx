@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import SeasonSelector from "@/components/SeasonSelector";
 
 type CustomField = {
   name?: string;
@@ -234,6 +236,10 @@ function ProgressBar({
 }
 
 export default function TaxReturnsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedSeasonId = searchParams.get("season") ?? "2026";
+
   const [tasks, setTasks] = useState<TaxReturnTask[]>([]);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("ALL");
@@ -246,7 +252,7 @@ export default function TaxReturnsPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch("/api/asana", {
+        const response = await fetch(`/api/asana?season=${encodeURIComponent(selectedSeasonId)}`, {
           cache: "no-store",
         });
 
@@ -285,7 +291,7 @@ export default function TaxReturnsPage() {
     }
 
     void loadTaxReturns();
-  }, []);
+  }, [selectedSeasonId]);
 
   const stages = useMemo(() => {
     const uniqueStages = new Set(
@@ -348,14 +354,27 @@ export default function TaxReturnsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <SeasonSelector
+              selectedSeasonId={selectedSeasonId}
+              onSeasonChange={(seasonId) => router.push(`/tax-returns?season=${encodeURIComponent(seasonId)}`)}
+              disabled={loading}
+            />
+
+            <Link
+              href={`/?season=${encodeURIComponent(selectedSeasonId)}`}
+              className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
+            >
+              Executive Dashboard
+            </Link>
+
             <div className="hidden text-right md:block">
               <p className="text-sm font-semibold text-slate-900">
                 Tax Operations
               </p>
 
               <p className="text-xs text-slate-500">
-                2026 Tax Season
+                {selectedSeasonId} Tax Season
               </p>
             </div>
 
@@ -520,7 +539,7 @@ export default function TaxReturnsPage() {
                       >
                         <td className="px-5 py-4">
                           <Link
-                            href={`/tax-returns/${task.gid}`}
+                            href={`/tax-returns/${task.gid}?season=${encodeURIComponent(selectedSeasonId)}`}
                             className="block"
                           >
                             <p className="font-semibold text-slate-900 hover:text-blue-700">

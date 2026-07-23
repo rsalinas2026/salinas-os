@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import SeasonSelector from "@/components/SeasonSelector";
 
 type TaxReturnTask = {
   gid: string;
@@ -19,7 +20,22 @@ type TaxReturnTask = {
 type ApiResponse = {
   success?: boolean;
 
+  season?: {
+    id: string;
+    year: number;
+    name: string;
+    status: string;
+  };
+
+  projects?: Array<{
+    id: string;
+    name: string;
+    asanaProjectGid: string;
+    enabled: boolean;
+  }>;
+
   counts?: {
+    projects?: number;
     allRecords?: number;
     taxReturns?: number;
     nonTaxRecords?: number;
@@ -107,6 +123,9 @@ function getStageStyles(stage: string): string {
 }
 
 export default function ExecutiveDashboardPage() {
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+  const [selectedSeasonName, setSelectedSeasonName] = useState("");
+  const [projectCount, setProjectCount] = useState(0);
   const [taxReturns, setTaxReturns] = useState<TaxReturnTask[]>([]);
   const [allRecordCount, setAllRecordCount] = useState(0);
   const [nonTaxRecordCount, setNonTaxRecordCount] = useState(0);
@@ -115,14 +134,37 @@ export default function ExecutiveDashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const urlSeasonId = new URLSearchParams(window.location.search).get("season");
+
+    if (urlSeasonId?.trim()) {
+      setSelectedSeasonId(urlSeasonId);
+    }
+  }, []);
+
+  const handleSeasonChange = useCallback((seasonId: string) => {
+    setSelectedSeasonId(seasonId);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("season", seasonId);
+    window.history.replaceState({}, "", url.toString());
+  }, []);
+
+  useEffect(() => {
+    if (!selectedSeasonId) {
+      return;
+    }
+
     async function loadDashboard() {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch("/api/asana", {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/asana?season=${encodeURIComponent(selectedSeasonId)}`,
+          {
+            cache: "no-store",
+          },
+        );
 
         const payload = (await response.json()) as ApiResponse;
 
@@ -138,6 +180,8 @@ export default function ExecutiveDashboardPage() {
           );
         }
 
+        setSelectedSeasonName(payload.season?.name ?? selectedSeasonId);
+        setProjectCount(payload.counts?.projects ?? payload.projects?.length ?? 0);
         setTaxReturns(payload.taxReturns);
         setAllRecordCount(payload.counts?.allRecords ?? 0);
         setNonTaxRecordCount(
@@ -156,7 +200,7 @@ export default function ExecutiveDashboardPage() {
     }
 
     void loadDashboard();
-  }, []);
+  }, [selectedSeasonId]);
 
   const dashboard = useMemo(() => {
     const stageCounts = new Map<string, number>();
@@ -251,9 +295,19 @@ export default function ExecutiveDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <SeasonSelector
+              selectedSeasonId={selectedSeasonId}
+              onSeasonChange={handleSeasonChange}
+              disabled={loading}
+            />
+
             <Link
-              href="/tax-returns"
+              href={
+                selectedSeasonId
+                  ? `/tax-returns?season=${encodeURIComponent(selectedSeasonId)}`
+                  : "/tax-returns"
+              }
               className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
             >
               View Tax Returns
@@ -280,6 +334,18 @@ export default function ExecutiveDashboardPage() {
             Live operational intelligence based only on records
             classified as tax returns.
           </p>
+
+          {selectedSeasonName && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+              <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
+                {selectedSeasonName}
+              </span>
+              <span className="text-slate-500">
+                {projectCount.toLocaleString()} enabled Asana project
+                {projectCount === 1 ? "" : "s"}
+              </span>
+            </div>
+          )}
         </header>
 
         {loading && (
@@ -471,7 +537,11 @@ export default function ExecutiveDashboardPage() {
                   </div>
 
                   <Link
-                    href="/tax-returns"
+                    href={
+                      selectedSeasonId
+                        ? `/tax-returns?season=${encodeURIComponent(selectedSeasonId)}`
+                        : "/tax-returns"
+                    }
                     className="mt-6 block rounded-xl border border-slate-300 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
                   >
                     Open Tax Returns List
