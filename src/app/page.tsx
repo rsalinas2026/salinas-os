@@ -134,7 +134,9 @@ export default function ExecutiveDashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const urlSeasonId = new URLSearchParams(window.location.search).get("season");
+    const urlSeasonId = new URLSearchParams(
+      window.location.search,
+    ).get("season");
 
     if (urlSeasonId?.trim()) {
       setSelectedSeasonId(urlSeasonId);
@@ -154,13 +156,15 @@ export default function ExecutiveDashboardPage() {
       return;
     }
 
+    const seasonId = selectedSeasonId;
+
     async function loadDashboard() {
       try {
         setLoading(true);
         setError("");
 
         const response = await fetch(
-          `/api/asana?season=${encodeURIComponent(selectedSeasonId)}`,
+          `/api/asana?season=${encodeURIComponent(seasonId)}`,
           {
             cache: "no-store",
           },
@@ -180,8 +184,12 @@ export default function ExecutiveDashboardPage() {
           );
         }
 
-        setSelectedSeasonName(payload.season?.name ?? selectedSeasonId);
-        setProjectCount(payload.counts?.projects ?? payload.projects?.length ?? 0);
+        setSelectedSeasonName(payload.season?.name ?? seasonId);
+        setProjectCount(
+          payload.counts?.projects ??
+            payload.projects?.length ??
+            0,
+        );
         setTaxReturns(payload.taxReturns);
         setAllRecordCount(payload.counts?.allRecords ?? 0);
         setNonTaxRecordCount(
@@ -305,7 +313,9 @@ export default function ExecutiveDashboardPage() {
             <Link
               href={
                 selectedSeasonId
-                  ? `/tax-returns?season=${encodeURIComponent(selectedSeasonId)}`
+                  ? `/tax-returns?season=${encodeURIComponent(
+                      selectedSeasonId,
+                    )}`
                   : "/tax-returns"
               }
               className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
@@ -340,6 +350,7 @@ export default function ExecutiveDashboardPage() {
               <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
                 {selectedSeasonName}
               </span>
+
               <span className="text-slate-500">
                 {projectCount.toLocaleString()} enabled Asana project
                 {projectCount === 1 ? "" : "s"}
@@ -539,7 +550,9 @@ export default function ExecutiveDashboardPage() {
                   <Link
                     href={
                       selectedSeasonId
-                        ? `/tax-returns?season=${encodeURIComponent(selectedSeasonId)}`
+                        ? `/tax-returns?season=${encodeURIComponent(
+                            selectedSeasonId,
+                          )}`
                         : "/tax-returns"
                     }
                     className="mt-6 block rounded-xl border border-slate-300 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"

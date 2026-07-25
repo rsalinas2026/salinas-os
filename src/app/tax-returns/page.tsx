@@ -3,7 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import SeasonSelector from "@/components/SeasonSelector";
 
 type CustomField = {
@@ -79,7 +84,8 @@ function getCustomFieldValue(
   fieldName: string,
 ): string {
   const field = customFields?.find(
-    (item) => item.name?.toLowerCase() === fieldName.toLowerCase(),
+    (item) =>
+      item.name?.toLowerCase() === fieldName.toLowerCase(),
   );
 
   return (
@@ -140,7 +146,9 @@ function normalizeTaxReturns(payload: unknown): TaxReturnTask[] {
   }
 
   if (Array.isArray(response.data)) {
-    return response.data.filter((task) => task.isTaxReturn !== false);
+    return response.data.filter(
+      (task) => task.isTaxReturn !== false,
+    );
   }
 
   /*
@@ -148,7 +156,9 @@ function normalizeTaxReturns(payload: unknown): TaxReturnTask[] {
    * while still excluding records explicitly marked as non-tax.
    */
   if (Array.isArray(response.tasks)) {
-    return response.tasks.filter((task) => task.isTaxReturn === true);
+    return response.tasks.filter(
+      (task) => task.isTaxReturn === true,
+    );
   }
 
   if (
@@ -168,28 +178,33 @@ function normalizeTaxReturns(payload: unknown): TaxReturnTask[] {
 function StageBadge({ stage }: { stage: string }) {
   const normalized = stage.toLowerCase();
 
-  let styles = "border-slate-200 bg-slate-50 text-slate-700";
+  let styles =
+    "border-slate-200 bg-slate-50 text-slate-700";
 
   if (normalized.includes("review")) {
-    styles = "border-purple-200 bg-purple-50 text-purple-700";
+    styles =
+      "border-purple-200 bg-purple-50 text-purple-700";
   } else if (
     normalized.includes("tax preparation") ||
     normalized.includes("accounting preparation") ||
     normalized.includes("progress")
   ) {
-    styles = "border-blue-200 bg-blue-50 text-blue-700";
+    styles =
+      "border-blue-200 bg-blue-50 text-blue-700";
   } else if (
     normalized.includes("information") ||
     normalized.includes("waiting") ||
     normalized.includes("request") ||
     normalized.includes("signature")
   ) {
-    styles = "border-amber-200 bg-amber-50 text-amber-700";
+    styles =
+      "border-amber-200 bg-amber-50 text-amber-700";
   } else if (
     normalized.includes("filed") ||
     normalized.includes("complete")
   ) {
-    styles = "border-emerald-200 bg-emerald-50 text-emerald-700";
+    styles =
+      "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
   return (
@@ -235,10 +250,44 @@ function ProgressBar({
   );
 }
 
-export default function TaxReturnsPage() {
+function TaxReturnsLoadingFallback() {
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center px-6 py-5">
+          <div className="flex h-16 w-56 items-center">
+            <Image
+              src="/images/rcbs-logo.png"
+              alt="Reality Check Business Solutions"
+              width={1000}
+              height={151}
+              priority
+              className="h-auto w-full object-contain"
+            />
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+          <p className="font-semibold text-slate-700">
+            Loading Tax Center...
+          </p>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Preparing tax season information.
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function TaxReturnsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selectedSeasonId = searchParams.get("season") ?? "2026";
+  const selectedSeasonId =
+    searchParams.get("season") ?? "2026";
 
   const [tasks, setTasks] = useState<TaxReturnTask[]>([]);
   const [search, setSearch] = useState("");
@@ -252,9 +301,14 @@ export default function TaxReturnsPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`/api/asana?season=${encodeURIComponent(selectedSeasonId)}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/asana?season=${encodeURIComponent(
+            selectedSeasonId,
+          )}`,
+          {
+            cache: "no-store",
+          },
+        );
 
         const payload: unknown = await response.json();
 
@@ -270,7 +324,8 @@ export default function TaxReturnsPage() {
           throw new Error(apiError);
         }
 
-        const normalizedTasks = normalizeTaxReturns(payload);
+        const normalizedTasks =
+          normalizeTaxReturns(payload);
 
         if (normalizedTasks.length === 0) {
           throw new Error(
@@ -307,10 +362,14 @@ export default function TaxReturnsPage() {
     const query = search.trim().toLowerCase();
 
     return tasks.filter((task) => {
-      const form = getCustomFieldValue(task.custom_fields, "Form");
+      const form = getCustomFieldValue(
+        task.custom_fields,
+        "Form",
+      );
       const preparer = task.assignee?.name ?? "";
       const stage = getPipelineStage(task);
-      const asanaSection = task.asanaSectionName ?? task.section ?? "";
+      const asanaSection =
+        task.asanaSectionName ?? task.section ?? "";
 
       const matchesSearch =
         !query ||
@@ -321,7 +380,8 @@ export default function TaxReturnsPage() {
         asanaSection.toLowerCase().includes(query);
 
       const matchesStage =
-        stageFilter === "ALL" || stage === stageFilter;
+        stageFilter === "ALL" ||
+        stage === stageFilter;
 
       return matchesSearch && matchesStage;
     });
@@ -357,12 +417,20 @@ export default function TaxReturnsPage() {
           <div className="flex flex-wrap items-end gap-3">
             <SeasonSelector
               selectedSeasonId={selectedSeasonId}
-              onSeasonChange={(seasonId) => router.push(`/tax-returns?season=${encodeURIComponent(seasonId)}`)}
+              onSeasonChange={(seasonId) =>
+                router.push(
+                  `/tax-returns?season=${encodeURIComponent(
+                    seasonId,
+                  )}`,
+                )
+              }
               disabled={loading}
             />
 
             <Link
-              href={`/?season=${encodeURIComponent(selectedSeasonId)}`}
+              href={`/?season=${encodeURIComponent(
+                selectedSeasonId,
+              )}`}
               className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
             >
               Executive Dashboard
@@ -398,8 +466,8 @@ export default function TaxReturnsPage() {
               </h1>
 
               <p className="mt-2 text-sm text-slate-500">
-                Eligible tax returns synchronized from the 2026 Tax
-                Season project.
+                Eligible tax returns synchronized from the{" "}
+                {selectedSeasonId} Tax Season project.
               </p>
             </div>
 
@@ -430,7 +498,9 @@ export default function TaxReturnsPage() {
               <input
                 id="tax-return-search"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
                 placeholder="Search client, form, preparer or stage..."
                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
@@ -467,7 +537,8 @@ export default function TaxReturnsPage() {
         {loading && (
           <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
             <p className="font-semibold text-slate-700">
-              Loading eligible 2026 tax returns...
+              Loading eligible {selectedSeasonId} tax
+              returns...
             </p>
 
             <p className="mt-2 text-sm text-slate-500">
@@ -539,7 +610,11 @@ export default function TaxReturnsPage() {
                       >
                         <td className="px-5 py-4">
                           <Link
-                            href={`/tax-returns/${task.gid}?season=${encodeURIComponent(selectedSeasonId)}`}
+                            href={`/tax-returns/${
+                              task.gid
+                            }?season=${encodeURIComponent(
+                              selectedSeasonId,
+                            )}`}
                             className="block"
                           >
                             <p className="font-semibold text-slate-900 hover:text-blue-700">
@@ -561,7 +636,8 @@ export default function TaxReturnsPage() {
                         </td>
 
                         <td className="px-5 py-4 text-sm text-slate-600">
-                          {task.assignee?.name ?? "Unassigned"}
+                          {task.assignee?.name ??
+                            "Unassigned"}
                         </td>
 
                         <td className="px-5 py-4 text-sm text-slate-600">
@@ -571,7 +647,9 @@ export default function TaxReturnsPage() {
                         <td className="px-5 py-4">
                           <ProgressBar
                             stage={stage}
-                            progressPercent={progressPercent}
+                            progressPercent={
+                              progressPercent
+                            }
                           />
                         </td>
                       </tr>
@@ -588,7 +666,8 @@ export default function TaxReturnsPage() {
                 </p>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Try a different client name, form or client stage.
+                  Try a different client name, form or
+                  client stage.
                 </p>
               </div>
             )}
@@ -596,5 +675,13 @@ export default function TaxReturnsPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function TaxReturnsPage() {
+  return (
+    <Suspense fallback={<TaxReturnsLoadingFallback />}>
+      <TaxReturnsPageContent />
+    </Suspense>
   );
 }
