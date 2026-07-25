@@ -6,13 +6,20 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const seasonId = request.nextUrl.searchParams.get("season");
-
     const dashboard = await buildExecutiveDashboard(seasonId);
 
-    return NextResponse.json({
-      success: true,
-      dashboard,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        dashboard,
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
   } catch (error) {
     console.error("Executive dashboard API error:", error);
 
@@ -22,10 +29,13 @@ export async function GET(request: NextRequest) {
         error:
           error instanceof Error
             ? error.message
-            : "Unknown Executive Dashboard error",
+            : "Unable to generate Executive Dashboard data.",
       },
       {
         status: 500,
+        headers: {
+          "Cache-Control": "no-store",
+        },
       },
     );
   }
