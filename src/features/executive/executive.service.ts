@@ -14,8 +14,10 @@ import {
   type TaxSeason,
   type TaxSeasonProject,
 } from "@/features/tax-pipeline/tax-seasons";
+import { buildExecutiveIntelligence } from "./executive.intelligence";
 import type {
   ExecutiveDashboardData,
+  ExecutivePipelineMetrics,
   ExecutiveProjectMetric,
   ExecutiveStageMetric,
   ExecutiveUnmappedSectionMetric,
@@ -28,7 +30,9 @@ type TaskClassification = {
   progress: ProgressResult | null;
 };
 
-const CLIENT_STAGES = Object.keys(RCBS_STAGES) as RcbsClientStage[];
+const CLIENT_STAGES = Object.keys(
+  RCBS_STAGES,
+) as RcbsClientStage[];
 
 const WORKFLOW_TYPES: WorkflowType[] = [
   "standard-tax",
@@ -41,7 +45,10 @@ function roundPercentage(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-function calculatePercentage(part: number, total: number): number {
+function calculatePercentage(
+  part: number,
+  total: number,
+): number {
   if (total === 0) {
     return 0;
   }
@@ -67,10 +74,12 @@ function getSeasonMemberships(
 /**
  * A task may belong to more than one enabled Asana project.
  *
- * When multiple eligible section memberships exist, the membership with the
- * highest progress is used as the task's current operational classification.
- * This prevents duplicate counting while favoring the most advanced mapped
- * workflow position.
+ * When multiple eligible section memberships exist, the membership
+ * with the highest progress is used as the task's current operational
+ * classification.
+ *
+ * This prevents duplicate counting while favoring the most advanced
+ * mapped workflow position.
  */
 function classifyTask(
   task: AsanaTask,
@@ -80,7 +89,10 @@ function classifyTask(
 
   const sectionCandidates = memberships
     .map((membership) => membership.section?.name?.trim())
-    .filter((sectionName): sectionName is string => Boolean(sectionName))
+    .filter(
+      (sectionName): sectionName is string =>
+        Boolean(sectionName),
+    )
     .map((sectionName) => ({
       sectionName,
       progress: calculateProgress(sectionName),
@@ -94,17 +106,32 @@ function classifyTask(
     };
   }
 
-  const rankedCandidates = [...sectionCandidates].sort((a, b) => {
-    if (a.progress.isTaxReturn !== b.progress.isTaxReturn) {
-      return Number(b.progress.isTaxReturn) - Number(a.progress.isTaxReturn);
-    }
+  const rankedCandidates = [...sectionCandidates].sort(
+    (a, b) => {
+      if (
+        a.progress.isTaxReturn !== b.progress.isTaxReturn
+      ) {
+        return (
+          Number(b.progress.isTaxReturn) -
+          Number(a.progress.isTaxReturn)
+        );
+      }
 
-    if (a.progress.mappingStatus !== b.progress.mappingStatus) {
-      return a.progress.mappingStatus === "mapped" ? -1 : 1;
-    }
+      if (
+        a.progress.mappingStatus !==
+        b.progress.mappingStatus
+      ) {
+        return a.progress.mappingStatus === "mapped"
+          ? -1
+          : 1;
+      }
 
-    return b.progress.progressPercent - a.progress.progressPercent;
-  });
+      return (
+        b.progress.progressPercent -
+        a.progress.progressPercent
+      );
+    },
+  );
 
   const selectedCandidate = rankedCandidates[0];
 
@@ -120,6 +147,7 @@ function buildStageMetrics(
 ): ExecutiveStageMetric[] {
   return CLIENT_STAGES.map((stage) => {
     const stageDefinition = RCBS_STAGES[stage];
+
     const stageItems = taxReturns.filter(
       (item) => item.progress?.clientStage === stage,
     );
@@ -127,14 +155,19 @@ function buildStageMetrics(
     const completed =
       stage === "Filed"
         ? stageItems.length
-        : stageItems.filter((item) => item.task.completed === true).length;
+        : stageItems.filter(
+            (item) => item.task.completed === true,
+          ).length;
 
     return {
       stage,
       order: stageDefinition.order,
       progressPercent: stageDefinition.progress,
       total: stageItems.length,
-      active: Math.max(stageItems.length - completed, 0),
+      active: Math.max(
+        stageItems.length - completed,
+        0,
+      ),
       completed,
       percentageOfPipeline: calculatePercentage(
         stageItems.length,
@@ -151,13 +184,17 @@ function buildWorkflowMetrics(
 ): ExecutiveWorkflowMetric[] {
   return WORKFLOW_TYPES.map((workflowType) => {
     const total = taxReturns.filter(
-      (item) => item.progress?.workflowType === workflowType,
+      (item) =>
+        item.progress?.workflowType === workflowType,
     ).length;
 
     return {
       workflowType,
       total,
-      percentageOfPipeline: calculatePercentage(total, taxReturns.length),
+      percentageOfPipeline: calculatePercentage(
+        total,
+        taxReturns.length,
+      ),
     };
   }).filter((metric) => metric.total > 0);
 }
@@ -169,13 +206,16 @@ function buildUnmappedSectionMetrics(
 
   for (const item of classifiedTasks) {
     const isUnmapped =
-      !item.progress || item.progress.mappingStatus === "unmapped";
+      !item.progress ||
+      item.progress.mappingStatus === "unmapped";
 
     if (!isUnmapped) {
       continue;
     }
 
-    const sectionName = item.sectionName ?? "No Asana Section";
+    const sectionName =
+      item.sectionName ?? "No Asana Section";
+
     const currentCount = counts.get(sectionName) ?? 0;
 
     counts.set(sectionName, currentCount + 1);
@@ -203,7 +243,8 @@ function buildProjectMetrics(
     const totalRecords = tasks.filter((task) =>
       task.memberships?.some(
         (membership) =>
-          membership.project?.gid === project.asanaProjectGid,
+          membership.project?.gid ===
+          project.asanaProjectGid,
       ),
     ).length;
 
@@ -223,19 +264,27 @@ function getAverageProgress(
   }
 
   const totalProgress = taxReturns.reduce(
-    (sum, item) => sum + (item.progress?.progressPercent ?? 0),
+    (sum, item) =>
+      sum + (item.progress?.progressPercent ?? 0),
     0,
   );
 
-  return roundPercentage(totalProgress / taxReturns.length);
+  return roundPercentage(
+    totalProgress / taxReturns.length,
+  );
 }
 
-function isTaskOverdue(task: AsanaTask, now: Date): boolean {
+function isTaskOverdue(
+  task: AsanaTask,
+  now: Date,
+): boolean {
   if (!task.due_on || task.completed) {
     return false;
   }
 
-  const dueDate = new Date(`${task.due_on}T23:59:59`);
+  const dueDate = new Date(
+    `${task.due_on}T23:59:59`,
+  );
 
   if (Number.isNaN(dueDate.getTime())) {
     return false;
@@ -248,7 +297,9 @@ export async function buildExecutiveDashboard(
   seasonId?: string | null,
 ): Promise<ExecutiveDashboardData> {
   const season: TaxSeason = resolveTaxSeason(seasonId);
+
   const collection = await getTaxSeasonTasks(season);
+
   const now = new Date();
 
   const classifiedTasks = collection.tasks.map((task) =>
@@ -267,7 +318,8 @@ export async function buildExecutiveDashboard(
 
   const unmappedRecords = classifiedTasks.filter(
     (item) =>
-      !item.progress || item.progress.mappingStatus === "unmapped",
+      !item.progress ||
+      item.progress.mappingStatus === "unmapped",
   ).length;
 
   const filedTaxReturns = taxReturns.filter(
@@ -279,13 +331,57 @@ export async function buildExecutiveDashboard(
     0,
   );
 
-  const assignedTaxReturns = taxReturns.filter(
-    (item) => Boolean(item.task.assignee),
+  const assignedTaxReturns = taxReturns.filter((item) =>
+    Boolean(item.task.assignee),
   ).length;
+
+  const unassignedTaxReturns = Math.max(
+    taxReturns.length - assignedTaxReturns,
+    0,
+  );
 
   const overdueTaxReturns = taxReturns.filter((item) =>
     isTaskOverdue(item.task, now),
   ).length;
+
+  const averageProgressPercent =
+    getAverageProgress(taxReturns);
+
+  const pipeline: ExecutivePipelineMetrics = {
+    totalAsanaRecords: collection.tasks.length,
+
+    totalTaxReturns: taxReturns.length,
+    activeTaxReturns,
+    filedTaxReturns,
+
+    mappedNonTaxRecords,
+    unmappedRecords,
+    excludedRecords:
+      mappedNonTaxRecords + unmappedRecords,
+
+    assignedTaxReturns,
+    unassignedTaxReturns,
+
+    overdueTaxReturns,
+    averageProgressPercent,
+  };
+
+  const stages = buildStageMetrics(taxReturns);
+
+  const workflows = buildWorkflowMetrics(taxReturns);
+
+  const projects = buildProjectMetrics(
+    collection.tasks,
+    collection.projects,
+  );
+
+  const unmappedSections =
+    buildUnmappedSectionMetrics(classifiedTasks);
+
+  const intelligence = buildExecutiveIntelligence(
+    pipeline,
+    stages,
+  );
 
   return {
     season: {
@@ -295,34 +391,12 @@ export async function buildExecutiveDashboard(
       status: season.status,
     },
 
-    pipeline: {
-      totalAsanaRecords: collection.tasks.length,
-
-      totalTaxReturns: taxReturns.length,
-      activeTaxReturns,
-      filedTaxReturns,
-
-      mappedNonTaxRecords,
-      unmappedRecords,
-      excludedRecords: mappedNonTaxRecords + unmappedRecords,
-
-      assignedTaxReturns,
-      unassignedTaxReturns: Math.max(
-        taxReturns.length - assignedTaxReturns,
-        0,
-      ),
-
-      overdueTaxReturns,
-      averageProgressPercent: getAverageProgress(taxReturns),
-    },
-
-    stages: buildStageMetrics(taxReturns),
-    workflows: buildWorkflowMetrics(taxReturns),
-    projects: buildProjectMetrics(
-      collection.tasks,
-      collection.projects,
-    ),
-    unmappedSections: buildUnmappedSectionMetrics(classifiedTasks),
+    pipeline,
+    stages,
+    workflows,
+    projects,
+    unmappedSections,
+    intelligence,
 
     generatedAt: now.toISOString(),
   };
