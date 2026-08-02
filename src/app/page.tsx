@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import SeasonSelector from "@/components/SeasonSelector";
 
 type ExecutiveStageMetric = {
@@ -123,17 +124,15 @@ function getWorkflowLabel(workflowType: string): string {
   }
 }
 
-export default function ExecutiveDashboardPage() {
-  const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+function ExecutiveDashboardContent() {
+  const searchParams = useSearchParams();
+  const [selectedSeasonId, setSelectedSeasonId] = useState(
+    () => searchParams.get("season")?.trim() || "2026",
+  );
   const [dashboard, setDashboard] = useState<ExecutiveDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    const urlSeasonId = new URLSearchParams(window.location.search).get("season");
-    setSelectedSeasonId(urlSeasonId?.trim() || "2026");
-  }, []);
 
   const handleSeasonChange = useCallback((seasonId: string) => {
     setSelectedSeasonId(seasonId);
@@ -172,8 +171,11 @@ export default function ExecutiveDashboardPage() {
   }, [selectedSeasonId]);
 
   useEffect(() => {
-    if (!selectedSeasonId) return;
-    void loadDashboard(true);
+    const loadTimer = window.setTimeout(() => {
+      void loadDashboard(true);
+    }, 0);
+
+    return () => window.clearTimeout(loadTimer);
   }, [loadDashboard, selectedSeasonId]);
 
   const taxReturnsUrl = selectedSeasonId
@@ -412,6 +414,29 @@ export default function ExecutiveDashboardPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function DashboardLoadingFallback() {
+  return (
+    <main className="min-h-screen bg-slate-50 px-6 py-12 text-slate-900">
+      <div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+        <p className="font-semibold text-slate-700">
+          Building executive intelligence...
+        </p>
+        <p className="mt-2 text-sm text-slate-500">
+          Preparing the Executive Dashboard.
+        </p>
+      </div>
+    </main>
+  );
+}
+
+export default function ExecutiveDashboardPage() {
+  return (
+    <Suspense fallback={<DashboardLoadingFallback />}>
+      <ExecutiveDashboardContent />
+    </Suspense>
   );
 }
 

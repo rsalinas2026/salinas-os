@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Salinas OS
 
-## Getting Started
+Salinas OS is the internal executive intelligence layer for Reality Check
+Business Solutions (RCBS). Asana remains the workflow engine and source of
+truth. Salinas OS reads Asana data and turns it into operational and
+client-facing progress information.
 
-First, run the development server:
+Current application version: `0.6.0`
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Version 1.0 scope
+
+- Executive dashboard and operational KPIs
+- Season-aware Asana project connections
+- Section-driven progress and workflow classification
+- Operational health and priority insights
+- Tax-return eligibility filtering
+- Client portal progress, timeline, next action, estimate, and print layout
+
+AI features, forecasting, notifications, capacity planning, mobile-specific
+experiences, and additional integrations are explicitly deferred until a
+future release.
+
+## Requirements
+
+- Node.js 20 or newer
+- npm
+- An Asana personal access token with read access to the configured project
+- The Asana project GID for the active tax season
+
+## Local setup
+
+1. Install dependencies with `npm ci`.
+2. Copy `.env.example` to `.env.local`.
+3. Add the real server-only values for `ASANA_ACCESS_TOKEN` and
+   `ASANA_PROJECT_GID` to `.env.local`.
+4. Start the application with `npm run dev`.
+5. Open `http://localhost:3000`.
+
+Never commit `.env.local` or expose the Asana token through a variable whose
+name begins with `NEXT_PUBLIC_`.
+
+## Required validation
+
+Every completed sprint must pass both release checks:
+
+```text
+npx tsc --noEmit
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run `npm run lint` as an additional quality check.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Production deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Vercel is the preferred production platform. Configure
+`ASANA_ACCESS_TOKEN` and `ASANA_PROJECT_GID` as encrypted server-side
+environment variables in Vercel. Do not place either value in source control.
 
-## Learn More
+After deployment, verify the executive dashboard against known Asana totals
+and complete a client-portal smoke test before allowing management use.
 
-To learn more about Next.js, take a look at the following resources:
+## Architecture boundary
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Salinas OS does not replace Asana and must not become a second practice
+management system. Workflow changes continue to happen in Asana. Application
+changes should be limited to reading, classifying, calculating, and presenting
+that source data.

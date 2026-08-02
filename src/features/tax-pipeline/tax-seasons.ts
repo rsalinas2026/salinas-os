@@ -81,13 +81,7 @@ export type TaxSeason = {
  * working while the rest of Salinas OS becomes season-aware.
  */
 function getLegacyAsanaProjectGid(): string {
-  const projectGid = process.env.ASANA_PROJECT_GID?.trim();
-
-  if (!projectGid) {
-    throw new Error("Missing ASANA_PROJECT_GID in .env.local");
-  }
-
-  return projectGid;
+  return process.env.ASANA_PROJECT_GID?.trim() ?? "";
 }
 
 /**
@@ -229,7 +223,7 @@ export function getEnabledSeasonProjects(
 
   if (projectsWithoutGids.length > 0) {
     throw new Error(
-      `Tax season ${season.id} has enabled projects without Asana project GIDs: ${projectsWithoutGids
+      `Tax season ${season.id} has enabled projects without Asana project GIDs. Check the server environment configuration for: ${projectsWithoutGids
         .map((project) => project.name)
         .join(", ")}`,
     );
