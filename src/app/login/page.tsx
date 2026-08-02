@@ -19,7 +19,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const parameters = await searchParams;
   const returnTo = getSafeReturnPath(parameters.returnTo);
   const invalidPassword = parameters.error === "invalid";
-  const configurationError = parameters.error === "configuration";
+  const passwordConfigurationError =
+    parameters.error === "password-configuration";
+  const secretConfigurationError =
+    parameters.error === "secret-configuration";
+  const serverConfigurationError =
+    parameters.error === "server-configuration" ||
+    parameters.error === "configuration";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-12 text-slate-900">
@@ -51,9 +57,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         )}
 
-        {configurationError && (
+        {passwordConfigurationError && (
           <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            Staff access is not configured. Contact the Salinas OS administrator.
+            The staff password setting is missing or shorter than 12 characters.
+          </div>
+        )}
+
+        {secretConfigurationError && (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            The authentication secret is missing or shorter than 32 characters.
+          </div>
+        )}
+
+        {serverConfigurationError && (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            Staff authentication encountered a server configuration error.
           </div>
         )}
 

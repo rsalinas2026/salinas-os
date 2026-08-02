@@ -2,11 +2,22 @@ const SESSION_DURATION_SECONDS = 8 * 60 * 60;
 
 export const STAFF_SESSION_COOKIE = "salinas_staff_session";
 
+export class StaffAuthConfigurationError extends Error {
+  constructor(
+    public readonly setting: "password" | "secret",
+    message: string,
+  ) {
+    super(message);
+    this.name = "StaffAuthConfigurationError";
+  }
+}
+
 function getAuthSecret(): string {
   const secret = process.env.SALINAS_AUTH_SECRET?.trim();
 
   if (!secret || secret.length < 32) {
-    throw new Error(
+    throw new StaffAuthConfigurationError(
+      "secret",
       "SALINAS_AUTH_SECRET must be configured with at least 32 characters.",
     );
   }
@@ -96,7 +107,8 @@ export async function verifyStaffPassword(password: string): Promise<boolean> {
   const expectedPassword = process.env.SALINAS_STAFF_PASSWORD;
 
   if (!expectedPassword || expectedPassword.length < 12) {
-    throw new Error(
+    throw new StaffAuthConfigurationError(
+      "password",
       "SALINAS_STAFF_PASSWORD must be configured with at least 12 characters.",
     );
   }

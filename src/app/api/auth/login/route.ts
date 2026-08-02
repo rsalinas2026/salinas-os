@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createStaffSessionToken,
   getStaffSessionCookieOptions,
+  StaffAuthConfigurationError,
   STAFF_SESSION_COOKIE,
   verifyStaffPassword,
 } from "@/lib/auth/staff-auth";
@@ -46,7 +47,12 @@ export async function POST(request: NextRequest) {
     console.error("Staff login configuration error:", error);
 
     const loginUrl = new URL("/login", requestOrigin);
-    loginUrl.searchParams.set("error", "configuration");
+    const errorCode =
+      error instanceof StaffAuthConfigurationError
+        ? `${error.setting}-configuration`
+        : "server-configuration";
+
+    loginUrl.searchParams.set("error", errorCode);
     loginUrl.searchParams.set("returnTo", returnTo);
 
     return NextResponse.redirect(loginUrl, 303);
