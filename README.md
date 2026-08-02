@@ -26,13 +26,16 @@ future release.
 - npm
 - An Asana personal access token with read access to the configured project
 - The Asana project GID for the active tax season
+- A shared staff password with at least 12 characters
+- A random session-signing secret with at least 32 characters
 
 ## Local setup
 
 1. Install dependencies with `npm ci`.
 2. Copy `.env.example` to `.env.local`.
-3. Add the real server-only values for `ASANA_ACCESS_TOKEN` and
-   `ASANA_PROJECT_GID` to `.env.local`.
+3. Add the real server-only values for `ASANA_ACCESS_TOKEN`,
+   `ASANA_PROJECT_GID`, `SALINAS_STAFF_PASSWORD`, and
+   `SALINAS_AUTH_SECRET` to `.env.local`.
 4. Start the application with `npm run dev`.
 5. Open `http://localhost:3000`.
 
@@ -53,8 +56,14 @@ Run `npm run lint` as an additional quality check.
 ## Production deployment
 
 Vercel is the preferred production platform. Configure
-`ASANA_ACCESS_TOKEN` and `ASANA_PROJECT_GID` as encrypted server-side
-environment variables in Vercel. Do not place either value in source control.
+`ASANA_ACCESS_TOKEN`, `ASANA_PROJECT_GID`, `SALINAS_STAFF_PASSWORD`, and
+`SALINAS_AUTH_SECRET` as encrypted server-side environment variables in
+Vercel. Do not place any of these values in source control.
+
+The Version 1.0 management-testing release uses a shared RCBS staff password.
+Successful login creates a signed, HTTP-only session that expires after eight
+hours. This protects both pages and API routes. It is not the future client
+authentication system and should not be used to provide clients with access.
 
 After deployment, verify the executive dashboard against known Asana totals
 and complete a client-portal smoke test before allowing management use.

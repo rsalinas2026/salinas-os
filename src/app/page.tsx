@@ -223,6 +223,14 @@ function ExecutiveDashboardContent() {
             >
               View Tax Returns
             </Link>
+            <form action="/api/auth/logout" method="post">
+              <button
+                type="submit"
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
+              >
+                Sign Out
+              </button>
+            </form>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">RS</div>
           </div>
         </div>
