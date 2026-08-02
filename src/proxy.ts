@@ -3,6 +3,7 @@ import {
   STAFF_SESSION_COOKIE,
   verifyStaffSessionToken,
 } from "@/lib/auth/staff-auth";
+import { getRequestOrigin } from "@/lib/http/request-origin";
 
 const PUBLIC_PATHS = new Set([
   "/login",
@@ -32,7 +33,7 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  const loginUrl = new URL("/login", request.url);
+  const loginUrl = new URL("/login", getRequestOrigin(request));
   loginUrl.searchParams.set(
     "returnTo",
     `${request.nextUrl.pathname}${request.nextUrl.search}`,
