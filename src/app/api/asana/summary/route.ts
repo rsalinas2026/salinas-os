@@ -25,7 +25,7 @@ function getProjectGid(): string {
   const projectGid = process.env.ASANA_PROJECT_GID;
 
   if (!projectGid) {
-    throw new Error("Missing ASANA_PROJECT_GID in .env.local");
+    throw new Error("Missing required environment variable: ASANA_PROJECT_GID");
   }
 
   return projectGid;

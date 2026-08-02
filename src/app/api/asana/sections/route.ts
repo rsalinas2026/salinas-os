@@ -19,7 +19,7 @@ export async function GET() {
       return NextResponse.json(
         {
           success: false,
-          error: "ASANA_PROJECT_GID is missing from .env.local",
+          error: "Missing required environment variable: ASANA_PROJECT_GID",
         },
         { status: 500 },
       );

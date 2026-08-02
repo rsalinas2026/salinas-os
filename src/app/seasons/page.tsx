@@ -137,7 +137,10 @@ export default function SeasonManagerPage() {
   }, []);
 
   const seasons = payload?.seasons ?? [];
-  const workspaces = payload?.workspaces ?? [];
+  const workspaces = useMemo(
+    () => payload?.workspaces ?? [],
+    [payload?.workspaces],
+  );
 
   const activeSeason =
     seasons.find((season) => season.status === "active") ?? null;

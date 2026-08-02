@@ -4,7 +4,7 @@ function getAsanaToken(): string {
   const token = process.env.ASANA_ACCESS_TOKEN;
 
   if (!token) {
-    throw new Error("Missing ASANA_ACCESS_TOKEN in .env.local");
+    throw new Error("Missing required environment variable: ASANA_ACCESS_TOKEN");
   }
 
   return token;
