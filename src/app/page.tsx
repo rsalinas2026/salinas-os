@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import SeasonSelector from "@/components/SeasonSelector";
+import { buildStatusReportsUrl } from "@/features/status-reports/status-report-navigation";
 import type {
   ExecutiveDashboardData,
   ExecutiveHealthStatus,
@@ -327,6 +328,14 @@ function ExecutiveDashboardContent() {
       )}`
     : "/tax-returns";
 
+  const statusReportsUrl = selectedSeasonId
+    ? buildStatusReportsUrl(selectedSeasonId, {
+        readiness: "all",
+        stage: "all",
+        search: "",
+      })
+    : "/status-reports";
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
@@ -380,9 +389,20 @@ function ExecutiveDashboardContent() {
 
             <Link
               href={taxReturnsUrl}
-              className="rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-700"
+              className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-700"
             >
               View Tax Returns
+            </Link>
+
+            <Link
+              href={statusReportsUrl}
+              onClick={(event) => {
+                event.preventDefault();
+                window.location.assign(statusReportsUrl);
+              }}
+              className="rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-700"
+            >
+              Weekly Status Reports
             </Link>
 
             <form action="/api/auth/logout" method="post">

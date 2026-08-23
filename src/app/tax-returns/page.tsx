@@ -10,6 +10,10 @@ import {
   useState,
 } from "react";
 import SeasonSelector from "@/components/SeasonSelector";
+import {
+  buildReportPreviewUrl,
+  buildStatusReportsUrl,
+} from "@/features/status-reports/status-report-navigation";
 
 type CustomField = {
   name?: string;
@@ -288,6 +292,11 @@ function TaxReturnsPageContent() {
   const searchParams = useSearchParams();
   const selectedSeasonId =
     searchParams.get("season") ?? "2026";
+  const statusReportsUrl = buildStatusReportsUrl(selectedSeasonId, {
+    readiness: "all",
+    stage: "all",
+    search: "",
+  });
 
   const [tasks, setTasks] = useState<TaxReturnTask[]>([]);
   const [search, setSearch] = useState("");
@@ -434,6 +443,17 @@ function TaxReturnsPageContent() {
               className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
             >
               Executive Dashboard
+            </Link>
+
+            <Link
+              href={statusReportsUrl}
+              onClick={(event) => {
+                event.preventDefault();
+                window.location.assign(statusReportsUrl);
+              }}
+              className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
+            >
+              Weekly Status Reports
             </Link>
 
             <div className="hidden text-right md:block">
@@ -610,11 +630,11 @@ function TaxReturnsPageContent() {
                       >
                         <td className="px-5 py-4">
                           <Link
-                            href={`/tax-returns/${
-                              task.gid
-                            }?season=${encodeURIComponent(
-                              selectedSeasonId,
-                            )}`}
+                            href={buildReportPreviewUrl({
+                              taskGid: task.gid,
+                              seasonId: selectedSeasonId,
+                              source: "tax-returns",
+                            })}
                             className="block"
                           >
                             <p className="font-semibold text-slate-900 hover:text-blue-700">

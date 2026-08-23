@@ -17,6 +17,7 @@ import type {
   ClientPortalProgress,
 } from "@/features/client-portal/types";
 import { getEstimatedCompletionWindow } from "@/features/client-portal/utils/estimated-completion";
+import { getReportPreviewBackNavigation } from "@/features/status-reports/status-report-navigation";
 import {
   CLIENT_PORTAL_STAGES,
   getCompletedMilestoneCount,
@@ -72,7 +73,11 @@ type TaxReturnStatusPageProps = {
   }>;
 
   searchParams?: Promise<{
-    season?: string;
+    season?: string | string[];
+    source?: string | string[];
+    status?: string | string[];
+    stage?: string | string[];
+    search?: string | string[];
   }>;
 };
 
@@ -127,7 +132,17 @@ export default async function TaxReturnStatusPage({
    *
    * Without a season query parameter, Salinas OS uses the active season.
    */
-  const season = resolveTaxSeason(resolvedSearchParams?.season);
+  const requestedSeason = Array.isArray(resolvedSearchParams?.season)
+    ? resolvedSearchParams.season[0]
+    : resolvedSearchParams?.season;
+  const season = resolveTaxSeason(requestedSeason);
+  const backNavigation = getReportPreviewBackNavigation({
+    source: resolvedSearchParams?.source,
+    seasonId: season.id,
+    status: resolvedSearchParams?.status,
+    stage: resolvedSearchParams?.stage,
+    search: resolvedSearchParams?.search,
+  });
 
   const taskFields = [
     "gid",
@@ -211,10 +226,10 @@ export default async function TaxReturnStatusPage({
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
           <div>
             <Link
-              href={`/tax-returns?season=${season.id}`}
+              href={backNavigation.href}
               className="text-sm font-semibold text-blue-700 transition hover:text-blue-900"
             >
-              ← Back to Tax Returns
+              ← {backNavigation.label}
             </Link>
 
             <p className="mt-1 text-sm text-slate-500">
