@@ -1,7 +1,9 @@
-import { calculateProgress } from "@/features/tax-pipeline/progress/calculate-progress";
+import {
+  classifyTaxReturnTask,
+  type TaxReturnClassification,
+} from "@/features/tax-pipeline/classify-tax-return";
 import { RCBS_STAGES } from "@/features/tax-pipeline/progress/stage-definitions";
 import type {
-  ProgressResult,
   RcbsClientStage,
   WorkflowType,
 } from "@/features/tax-pipeline/progress/types";
@@ -26,8 +28,7 @@ import type {
 
 type TaskClassification = {
   task: AsanaTask;
-  sectionName: string | null;
-  progress: ProgressResult | null;
+  classification: TaxReturnClassification;
 };
 
 const CLIENT_STAGES = Object.keys(
@@ -56,92 +57,6 @@ function calculatePercentage(
   return roundPercentage((part / total) * 100);
 }
 
-function getSeasonMemberships(
-  task: AsanaTask,
-  projects: TaxSeasonProject[],
-): NonNullable<AsanaTask["memberships"]> {
-  const projectGids = new Set(
-    projects.map((project) => project.asanaProjectGid),
-  );
-
-  return (task.memberships ?? []).filter((membership) => {
-    const projectGid = membership.project?.gid;
-
-    return Boolean(projectGid && projectGids.has(projectGid));
-  });
-}
-
-/**
- * A task may belong to more than one enabled Asana project.
- *
- * When multiple eligible section memberships exist, the membership
- * with the highest progress is used as the task's current operational
- * classification.
- *
- * This prevents duplicate counting while favoring the most advanced
- * mapped workflow position.
- */
-function classifyTask(
-  task: AsanaTask,
-  projects: TaxSeasonProject[],
-): TaskClassification {
-  const memberships = getSeasonMemberships(task, projects);
-
-  const sectionCandidates = memberships
-    .map((membership) => membership.section?.name?.trim())
-    .filter(
-      (sectionName): sectionName is string =>
-        Boolean(sectionName),
-    )
-    .map((sectionName) => ({
-      sectionName,
-      progress: calculateProgress(sectionName),
-    }));
-
-  if (sectionCandidates.length === 0) {
-    return {
-      task,
-      sectionName: null,
-      progress: null,
-    };
-  }
-
-  const rankedCandidates = [...sectionCandidates].sort(
-    (a, b) => {
-      if (
-        a.progress.isTaxReturn !== b.progress.isTaxReturn
-      ) {
-        return (
-          Number(b.progress.isTaxReturn) -
-          Number(a.progress.isTaxReturn)
-        );
-      }
-
-      if (
-        a.progress.mappingStatus !==
-        b.progress.mappingStatus
-      ) {
-        return a.progress.mappingStatus === "mapped"
-          ? -1
-          : 1;
-      }
-
-      return (
-        b.progress.progressPercent -
-        a.progress.progressPercent
-      );
-    },
-  );
-
-  const selectedCandidate = rankedCandidates[0];
-
-  return {
-    task,
-    sectionName: selectedCandidate.sectionName,
-    progress: selectedCandidate.progress,
-  };
-}
-
 function buildStageMetrics(
   taxReturns: TaskClassification[],
 ): ExecutiveStageMetric[] {
@@ -149,7 +64,7 @@ function buildStageMetrics(
     const stageDefinition = RCBS_STAGES[stage];
 
     const stageItems = taxReturns.filter(
-      (item) => item.progress?.clientStage === stage,
+      (item) => item.classification.clientStage === stage,
     );
 
     const completed =
@@ -185,7 +100,7 @@ function buildWorkflowMetrics(
   return WORKFLOW_TYPES.map((workflowType) => {
     const total = taxReturns.filter(
       (item) =>
-        item.progress?.workflowType === workflowType,
+        item.classification.workflowType === workflowType,
     ).length;
 
     return {
@@ -206,15 +121,14 @@ function buildUnmappedSectionMetrics(
 
   for (const item of classifiedTasks) {
     const isUnmapped =
-      !item.progress ||
-      item.progress.mappingStatus === "unmapped";
+      item.classification.mappingStatus === "unmapped";
 
     if (!isUnmapped) {
       continue;
     }
 
     const sectionName =
-      item.sectionName ?? "No Asana Section";
+      item.classification.selectedSectionName ?? "No Asana Section";
 
     const currentCount = counts.get(sectionName) ?? 0;
 
@@ -265,7 +179,7 @@ function getAverageProgress(
 
   const totalProgress = taxReturns.reduce(
     (sum, item) =>
-      sum + (item.progress?.progressPercent ?? 0),
+      sum + item.classification.progressPercent,
     0,
   );
 
@@ -303,27 +217,29 @@ export async function buildExecutiveDashboard(
   const now = new Date();
 
   const classifiedTasks = collection.tasks.map((task) =>
-    classifyTask(task, collection.projects),
+    ({
+      task,
+      classification: classifyTaxReturnTask(task, season),
+    }),
   );
 
   const taxReturns = classifiedTasks.filter(
-    (item) => item.progress?.isTaxReturn === true,
+    (item) => item.classification.taxReturnEligible,
   );
 
   const mappedNonTaxRecords = classifiedTasks.filter(
     (item) =>
-      item.progress?.mappingStatus === "mapped" &&
-      item.progress.isTaxReturn === false,
+      item.classification.mappingStatus === "mapped" &&
+      !item.classification.taxReturnEligible,
   ).length;
 
   const unmappedRecords = classifiedTasks.filter(
     (item) =>
-      !item.progress ||
-      item.progress.mappingStatus === "unmapped",
+      item.classification.mappingStatus === "unmapped",
   ).length;
 
   const filedTaxReturns = taxReturns.filter(
-    (item) => item.progress?.clientStage === "Filed",
+    (item) => item.classification.clientStage === "Filed",
   ).length;
 
   const activeTaxReturns = Math.max(

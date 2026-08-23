@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { calculateProgress } from "@/features/tax-pipeline/progress/calculate-progress";
+import { classifyTaxReturnTask } from "@/features/tax-pipeline/classify-tax-return";
 import { getTaxSeasonTasks } from "@/features/tax-pipeline/tax-pipeline.service";
 import {
   getEnabledSeasonProjects,
@@ -16,13 +16,6 @@ export async function GET(request: NextRequest) {
 
     const collection = await getTaxSeasonTasks(season);
 
-    const projectPriority = new Map(
-      enabledProjects.map((project, index) => [
-        project.asanaProjectGid,
-        index,
-      ]),
-    );
-
     const enabledProjectGids = new Set(
       enabledProjects.map((project) => project.asanaProjectGid),
     );
@@ -34,28 +27,11 @@ export async function GET(request: NextRequest) {
             membership.project?.gid ?? "";
 
           return enabledProjectGids.has(membershipProjectGid);
-        })
-        .sort((a, b) => {
-          const aProjectGid = a.project?.gid ?? "";
-          const bProjectGid = b.project?.gid ?? "";
-
-          const aPriority =
-            projectPriority.get(aProjectGid) ??
-            Number.MAX_SAFE_INTEGER;
-
-          const bPriority =
-            projectPriority.get(bProjectGid) ??
-            Number.MAX_SAFE_INTEGER;
-
-          return aPriority - bPriority;
         });
 
-      const selectedMembership = eligibleMemberships[0];
-
+      const classification = classifyTaxReturnTask(task, season);
       const asanaSectionName =
-        selectedMembership?.section?.name ?? "No section";
-
-      const progress = calculateProgress(asanaSectionName);
+        classification.selectedSectionName ?? "No section";
 
       return {
         ...task,
@@ -63,10 +39,10 @@ export async function GET(request: NextRequest) {
         section: asanaSectionName,
         asanaSectionName,
 
-        sourceProject: selectedMembership?.project
+        sourceProject: classification.selectedProjectGid
           ? {
-              gid: selectedMembership.project.gid,
-              name: selectedMembership.project.name,
+              gid: classification.selectedProjectGid,
+              name: classification.selectedProjectName,
             }
           : null,
 
@@ -88,13 +64,19 @@ export async function GET(request: NextRequest) {
           }),
         ),
 
-        pipelineStage: progress.clientStage,
-        clientStage: progress.clientStage,
-        progressPercent: progress.progressPercent,
-        workflowType: progress.workflowType,
-        mappingStatus: progress.mappingStatus,
-        clientVisible: progress.clientVisible,
-        isTaxReturn: progress.isTaxReturn,
+        selectedSectionGid: classification.selectedSectionGid,
+        pipelineStage: classification.clientStage,
+        clientStage: classification.clientStage,
+        progressPercent: classification.progressPercent,
+        workflowType: classification.workflowType,
+        mappingStatus: classification.mappingStatus,
+        clientVisible: classification.clientVisible,
+        isTaxReturn: classification.taxReturnEligible,
+        belongsToSelectedSeason:
+          classification.belongsToSelectedSeason,
+        clientStatusEligible:
+          classification.clientStatusEligible,
+        exclusionReason: classification.exclusionReason,
       };
     });
 

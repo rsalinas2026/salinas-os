@@ -1,11 +1,9 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { asanaFetch } from "@/lib/asana/asana-client";
-import { calculateProgress } from "@/features/tax-pipeline/progress/calculate-progress";
+import { classifyTaxReturnTask } from "@/features/tax-pipeline/classify-tax-return";
 import { getClientStatus } from "@/features/tax-pipeline/progress/client-status";
-import {
-  getEnabledSeasonProjects,
-  resolveTaxSeason,
-} from "@/features/tax-pipeline/tax-seasons";
+import { resolveTaxSeason } from "@/features/tax-pipeline/tax-seasons";
 import { ClientActionPanel } from "@/features/client-portal/components/ClientActionPanel";
 import { EstimatedCompletionCard } from "@/features/client-portal/components/EstimatedCompletionCard";
 import { HeroProgress } from "@/features/client-portal/components/HeroProgress";
@@ -130,11 +128,6 @@ export default async function TaxReturnStatusPage({
    * Without a season query parameter, Salinas OS uses the active season.
    */
   const season = resolveTaxSeason(resolvedSearchParams?.season);
-  const enabledProjects = getEnabledSeasonProjects(season);
-
-  const enabledProjectGids = new Set(
-    enabledProjects.map((project) => project.asanaProjectGid),
-  );
 
   const taskFields = [
     "gid",
@@ -162,26 +155,13 @@ export default async function TaxReturnStatusPage({
 
   const task = response.data;
 
-  /**
-   * A task may belong to several Asana projects.
-   *
-   * Only a membership connected to one of the selected season's enabled
-   * projects may determine the client-facing progress.
-   */
-  const projectMembership = task.memberships?.find((membership) => {
-    const membershipProjectGid = membership.project?.gid;
+  const classification = classifyTaxReturnTask(task, season);
 
-    return (
-      membershipProjectGid !== undefined &&
-      enabledProjectGids.has(membershipProjectGid)
-    );
-  });
+  if (!classification.clientStatusEligible) {
+    notFound();
+  }
 
-  const asanaSectionName =
-    projectMembership?.section?.name ?? "No section";
-
-  const progressResult = calculateProgress(asanaSectionName);
-  const clientStatus = getClientStatus(progressResult.clientStage);
+  const clientStatus = getClientStatus(classification.clientStage);
 
   const form =
     getCustomFieldValue(task.custom_fields, "Form") ?? "Tax Return";
