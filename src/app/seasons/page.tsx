@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import SettingsNavLink from "@/components/SettingsNavLink";
 
 type TaxSeasonStatus = "planned" | "active" | "archived";
 
@@ -242,6 +243,8 @@ export default function SeasonManagerPage() {
             >
               Tax Returns
             </Link>
+
+            <SettingsNavLink />
 
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
               RS

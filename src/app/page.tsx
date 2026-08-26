@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import SeasonSelector from "@/components/SeasonSelector";
+import SettingsNavLink from "@/components/SettingsNavLink";
 import { buildStatusReportsUrl } from "@/features/status-reports/status-report-navigation";
 import type {
   ExecutiveDashboardData,
@@ -404,6 +405,8 @@ function ExecutiveDashboardContent() {
             >
               Weekly Status Reports
             </Link>
+
+            <SettingsNavLink />
 
             <form action="/api/auth/logout" method="post">
               <button

@@ -104,6 +104,8 @@ async function main() {
         name: "Settings Verification A",
       });
       assert.ok(firstSeason);
+      assert.equal(firstSeason.status, "upcoming");
+      assert.equal(firstSeason.isDefault, false);
 
       await assert.rejects(
         transaction.transaction(async (savepoint) => {

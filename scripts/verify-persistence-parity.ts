@@ -30,7 +30,31 @@ async function main() {
     assert.equal(databaseSeason.name, codeSeason.name);
     assert.equal(databaseSeason.status, "active");
     assert.equal(databaseSeason.isDefault, true);
-    assert.equal(seasons.length, 1);
+
+    const futureSeason = seasons.find((season) => season.year === 2027);
+    assert.ok(futureSeason, "Persistent 2027 Tax Season is missing.");
+    assert.equal(futureSeason.code, "2027");
+    assert.equal(futureSeason.name, "2027 Tax Season");
+    assert.equal(futureSeason.status, "upcoming");
+    assert.equal(futureSeason.isDefault, false);
+    assert.equal(futureSeason.projects.length, 1);
+    assert.equal(futureSeason.projects[0]?.asanaProjectGid, "1214909687451352");
+    assert.equal(futureSeason.projects[0]?.asanaProjectName, "2027 TAX SEASON");
+    assert.equal(futureSeason.projects[0]?.enabled, true);
+    assert.equal(futureSeason.projects[0]?.priority, 0);
+    assert.ok(
+      futureSeason.projects[0]?.validatedAt instanceof Date &&
+        Number.isFinite(futureSeason.projects[0].validatedAt.getTime()),
+      "Persistent 2027 Asana project must retain a valid validation timestamp.",
+    );
+    assert.equal(
+      seasons.filter((season) => season.status === "active").length,
+      1,
+    );
+    assert.equal(
+      seasons.filter((season) => season.isDefault).length,
+      1,
+    );
 
     assert.deepEqual(
       databaseSeason.projects.map((project) => project.asanaProjectGid),
@@ -143,7 +167,9 @@ async function main() {
     assert.ok(!readerSource.includes("tax-season-repository"));
     assert.ok(!readerSource.includes("@/lib/db"));
 
-    console.log("Persistent 2026 Tax Season parity verification passed.");
+    console.log(
+      "Persistent 2026 parity and 2027 configuration verification passed.",
+    );
   } finally {
     await databaseClient.getDatabasePool().end();
   }
