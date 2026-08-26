@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed:2026": "NODE_OPTIONS=--conditions=react-server tsx scripts/seed-2026-tax-season.ts",
-    "db:verify:parity": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-persistence-parity.ts"
+    "db:verify:parity": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-persistence-parity.ts",
+    "settings:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-settings-administration.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

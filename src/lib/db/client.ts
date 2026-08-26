@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import { validateDatabaseUrl } from "./database-url";
 import * as schema from "./schema";
 
-type SalinasDatabase = NodePgDatabase<typeof schema>;
+export type SalinasDatabase = NodePgDatabase<typeof schema>;
 
 type DatabaseGlobal = typeof globalThis & {
   salinasDatabase?: SalinasDatabase;

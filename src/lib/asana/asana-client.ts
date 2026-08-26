@@ -1,5 +1,12 @@
 const ASANA_API_BASE_URL = "https://app.asana.com/api/1.0";
 
+export class AsanaApiError extends Error {
+  constructor(public readonly status: number) {
+    super("Asana API request failed.");
+    this.name = "AsanaApiError";
+  }
+}
+
 function getAsanaToken(): string {
   const token = process.env.ASANA_ACCESS_TOKEN;
 
@@ -20,9 +27,7 @@ export async function asanaFetch<T>(endpoint: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Asana API request failed: ${response.status} ${response.statusText}`,
-    );
+    throw new AsanaApiError(response.status);
   }
 
   return response.json() as Promise<T>;
