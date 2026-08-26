@@ -1,0 +1,313 @@
+{
+  "id": "3632826c-70b6-4276-bd6a-08ba8de7c2d8",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.tax_season": {
+      "name": "tax_season",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tax_season_one_active_idx": {
+          "name": "tax_season_one_active_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"tax_season\".\"status\" = 'active'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tax_season_one_default_idx": {
+          "name": "tax_season_one_default_idx",
+          "columns": [
+            {
+              "expression": "is_default",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"tax_season\".\"is_default\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tax_season_status_idx": {
+          "name": "tax_season_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tax_season_code_uq": {
+          "name": "tax_season_code_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        },
+        "tax_season_year_uq": {
+          "name": "tax_season_year_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "year"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "tax_season_name_nonempty_chk": {
+          "name": "tax_season_name_nonempty_chk",
+          "value": "length(trim(\"tax_season\".\"name\")) > 0"
+        },
+        "tax_season_status_chk": {
+          "name": "tax_season_status_chk",
+          "value": "\"tax_season\".\"status\" in ('upcoming', 'active', 'archived')"
+        },
+        "tax_season_archived_not_default_chk": {
+          "name": "tax_season_archived_not_default_chk",
+          "value": "not (\"tax_season\".\"status\" = 'archived' and \"tax_season\".\"is_default\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.tax_season_project": {
+      "name": "tax_season_project",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tax_season_id": {
+          "name": "tax_season_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asana_project_gid": {
+          "name": "asana_project_gid",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asana_project_name": {
+          "name": "asana_project_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "priority": {
+          "name": "priority",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "validated_at": {
+          "name": "validated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tax_season_project_season_idx": {
+          "name": "tax_season_project_season_idx",
+          "columns": [
+            {
+              "expression": "tax_season_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tax_season_project_enabled_order_idx": {
+          "name": "tax_season_project_enabled_order_idx",
+          "columns": [
+            {
+              "expression": "tax_season_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "enabled",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "priority",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tax_season_project_tax_season_id_tax_season_id_fk": {
+          "name": "tax_season_project_tax_season_id_tax_season_id_fk",
+          "tableFrom": "tax_season_project",
+          "tableTo": "tax_season",
+          "columnsFrom": [
+            "tax_season_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tax_season_project_asana_gid_uq": {
+          "name": "tax_season_project_asana_gid_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "asana_project_gid"
+          ]
+        },
+        "tax_season_project_season_priority_uq": {
+          "name": "tax_season_project_season_priority_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tax_season_id",
+            "priority"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "tax_season_project_name_nonempty_chk": {
+          "name": "tax_season_project_name_nonempty_chk",
+          "value": "length(trim(\"tax_season_project\".\"asana_project_name\")) > 0"
+        },
+        "tax_season_project_priority_chk": {
+          "name": "tax_season_project_priority_chk",
+          "value": "\"tax_season_project\".\"priority\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
