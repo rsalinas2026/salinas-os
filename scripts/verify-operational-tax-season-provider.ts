@@ -73,7 +73,6 @@ async function main() {
   const operationalSources = [
     "src/features/tax-pipeline/configuration/tax-season-configuration-provider.ts",
     "src/features/tax-pipeline/configuration/code-tax-season-configuration-provider.ts",
-    "src/features/tax-pipeline/configuration/operational-tax-season-configuration.ts",
   ].map((path) => readFileSync(path, "utf8")).join("\n");
 
   for (const forbiddenDependency of [
@@ -84,6 +83,14 @@ async function main() {
   ]) {
     assert.ok(!operationalSources.includes(forbiddenDependency));
   }
+
+  const operationalServiceSource = readFileSync(
+    "src/features/tax-pipeline/configuration/operational-tax-season-configuration.ts",
+    "utf8",
+  );
+  assert.ok(
+    operationalServiceSource.includes("selectOperationalTaxSeasonProvider"),
+  );
 
   console.log("Operational Tax Season provider contract verification passed.");
 }

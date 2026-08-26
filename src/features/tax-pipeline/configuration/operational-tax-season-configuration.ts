@@ -1,26 +1,20 @@
 import "server-only";
 
-import { codeTaxSeasonConfigurationProvider } from "./code-tax-season-configuration-provider";
-import type { TaxSeasonConfigurationProvider } from "./tax-season-configuration-provider";
-
-// Code-backed configuration is intentionally the only operational provider
-// in this checkpoint. No environment selection or database fallback exists.
-const operationalProvider: TaxSeasonConfigurationProvider =
-  codeTaxSeasonConfigurationProvider;
+import { selectOperationalTaxSeasonProvider } from "./operational-tax-season-provider-selection";
 
 export function listOperationalTaxSeasons() {
-  return operationalProvider.listSeasons();
+  return selectOperationalTaxSeasonProvider().listSeasons();
 }
 
 export function getOperationalTaxSeasonByCode(code: string) {
-  return operationalProvider.getSeasonByCode(code);
+  return selectOperationalTaxSeasonProvider().getSeasonByCode(code);
 }
 
 export function getCurrentOperationalTaxSeason() {
-  return operationalProvider.getCurrentSeason();
+  return selectOperationalTaxSeasonProvider().getCurrentSeason();
 }
 
-/** Resolves an explicit season code or the current code-backed season. */
+/** Resolves an explicit season code or the current configured season. */
 export async function resolveOperationalTaxSeason(
   code?: string | null,
 ) {
