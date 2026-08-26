@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { evaluateReportReadiness } from "@/features/status-reports/report-readiness";
 import { classifyTaxReturnTask } from "@/features/tax-pipeline/classify-tax-return";
+import { resolveOperationalTaxSeason } from "@/features/tax-pipeline/configuration/operational-tax-season-configuration";
+import { getEnabledSeasonProjects } from "@/features/tax-pipeline/tax-season-domain";
 import { getTaxSeasonTasks } from "@/features/tax-pipeline/tax-pipeline.service";
-import {
-  getEnabledSeasonProjects,
-  resolveTaxSeason,
-} from "@/features/tax-pipeline/tax-seasons";
 
 export async function GET(request: NextRequest) {
   try {
     const requestedSeasonId =
       request.nextUrl.searchParams.get("season");
 
-    const season = resolveTaxSeason(requestedSeasonId);
+    const season = await resolveOperationalTaxSeason(requestedSeasonId);
     const enabledProjects = getEnabledSeasonProjects(season);
 
     const collection = await getTaxSeasonTasks(season);

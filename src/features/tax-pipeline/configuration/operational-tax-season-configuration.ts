@@ -19,3 +19,21 @@ export function getOperationalTaxSeasonByCode(code: string) {
 export function getCurrentOperationalTaxSeason() {
   return operationalProvider.getCurrentSeason();
 }
+
+/** Resolves an explicit season code or the current code-backed season. */
+export async function resolveOperationalTaxSeason(
+  code?: string | null,
+) {
+  if (!code?.trim()) {
+    return getCurrentOperationalTaxSeason();
+  }
+
+  const normalizedCode = code.trim();
+  const season = await getOperationalTaxSeasonByCode(normalizedCode);
+
+  if (!season) {
+    throw new Error(`Unknown tax season: ${normalizedCode}`);
+  }
+
+  return season;
+}

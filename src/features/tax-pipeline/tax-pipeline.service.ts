@@ -1,10 +1,10 @@
 import { asanaFetch } from "@/lib/asana/asana-client";
+import { getCurrentOperationalTaxSeason } from "./configuration/operational-tax-season-configuration";
 import {
-  getActiveTaxSeason,
   getEnabledSeasonProjects,
   type TaxSeason,
   type TaxSeasonProject,
-} from "./tax-seasons";
+} from "./tax-season-domain";
 
 export type AsanaTask = {
   gid: string;
@@ -171,7 +171,9 @@ export async function getTaxSeasonTasks(
  * Loads all tasks for the currently active tax season.
  */
 export async function getActiveTaxSeasonTasks(): Promise<SeasonTaskCollection> {
-  return getTaxSeasonTasks(getActiveTaxSeason());
+  const season = await getCurrentOperationalTaxSeason();
+
+  return getTaxSeasonTasks(season);
 }
 
 /**

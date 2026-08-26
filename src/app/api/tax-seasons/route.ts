@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import {
-  getActiveTaxSeason,
-  getTaxSeasons,
-} from "@/features/tax-pipeline/tax-seasons";
+  getCurrentOperationalTaxSeason,
+  listOperationalTaxSeasons,
+} from "@/features/tax-pipeline/configuration/operational-tax-season-configuration";
 
 export async function GET() {
   try {
-    const seasons = getTaxSeasons();
-    const activeSeason = getActiveTaxSeason();
+    const [seasons, activeSeason] = await Promise.all([
+      listOperationalTaxSeasons(),
+      getCurrentOperationalTaxSeason(),
+    ]);
 
     return NextResponse.json({
       success: true,

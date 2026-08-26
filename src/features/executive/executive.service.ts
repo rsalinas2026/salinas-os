@@ -11,11 +11,11 @@ import {
   getTaxSeasonTasks,
   type AsanaTask,
 } from "@/features/tax-pipeline/tax-pipeline.service";
+import { resolveOperationalTaxSeason } from "@/features/tax-pipeline/configuration/operational-tax-season-configuration";
 import {
-  resolveTaxSeason,
   type TaxSeason,
   type TaxSeasonProject,
-} from "@/features/tax-pipeline/tax-seasons";
+} from "@/features/tax-pipeline/tax-season-domain";
 import { buildExecutiveIntelligence } from "./executive.intelligence";
 import type {
   ExecutiveDashboardData,
@@ -210,7 +210,7 @@ function isTaskOverdue(
 export async function buildExecutiveDashboard(
   seasonId?: string | null,
 ): Promise<ExecutiveDashboardData> {
-  const season: TaxSeason = resolveTaxSeason(seasonId);
+  const season: TaxSeason = await resolveOperationalTaxSeason(seasonId);
 
   const collection = await getTaxSeasonTasks(season);
 

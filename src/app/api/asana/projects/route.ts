@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { asanaFetch } from "@/lib/asana/asana-client";
-import { getTaxSeasons } from "@/features/tax-pipeline/tax-seasons";
+import { listOperationalTaxSeasons } from "@/features/tax-pipeline/configuration/operational-tax-season-configuration";
+import type { TaxSeason } from "@/features/tax-pipeline/tax-season-domain";
 
 type AsanaWorkspace = {
   gid: string;
@@ -73,7 +74,7 @@ const PROJECT_OPT_FIELDS = [
   "workspace.name",
 ].join(",");
 
-function buildProjectAssignmentMap(): Map<
+function buildProjectAssignmentMap(seasons: TaxSeason[]): Map<
   string,
   ProjectSeasonAssignment[]
 > {
@@ -82,7 +83,7 @@ function buildProjectAssignmentMap(): Map<
     ProjectSeasonAssignment[]
   >();
 
-  for (const season of getTaxSeasons()) {
+  for (const season of seasons) {
     for (const project of season.projects) {
       const existingAssignments =
         assignmentMap.get(project.asanaProjectGid) ?? [];
@@ -161,8 +162,11 @@ async function getWorkspaceProjects(
 
 export async function GET() {
   try {
-    const workspaces = await getAllWorkspaces();
-    const assignmentMap = buildProjectAssignmentMap();
+    const [workspaces, seasons] = await Promise.all([
+      getAllWorkspaces(),
+      listOperationalTaxSeasons(),
+    ]);
+    const assignmentMap = buildProjectAssignmentMap(seasons);
 
     const workspaceCollections = await Promise.all(
       workspaces.map(async (workspace) => {
@@ -213,7 +217,7 @@ export async function GET() {
           (project) => !project.assigned,
         ).length,
       },
-      seasons: getTaxSeasons(),
+      seasons,
       workspaces: workspaceCollections,
       generatedAt: new Date().toISOString(),
     });

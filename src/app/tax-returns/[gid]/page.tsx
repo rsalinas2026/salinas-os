@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asanaFetch } from "@/lib/asana/asana-client";
 import { classifyTaxReturnTask } from "@/features/tax-pipeline/classify-tax-return";
+import { resolveOperationalTaxSeason } from "@/features/tax-pipeline/configuration/operational-tax-season-configuration";
 import { getClientStatus } from "@/features/tax-pipeline/progress/client-status";
-import { resolveTaxSeason } from "@/features/tax-pipeline/tax-seasons";
 import { ClientActionPanel } from "@/features/client-portal/components/ClientActionPanel";
 import { EstimatedCompletionCard } from "@/features/client-portal/components/EstimatedCompletionCard";
 import { HeroProgress } from "@/features/client-portal/components/HeroProgress";
@@ -136,7 +136,7 @@ export default async function TaxReturnStatusPage({
   const requestedSeason = Array.isArray(resolvedSearchParams?.season)
     ? resolvedSearchParams.season[0]
     : resolvedSearchParams?.season;
-  const season = resolveTaxSeason(requestedSeason);
+  const season = await resolveOperationalTaxSeason(requestedSeason);
   const backNavigation = getReportPreviewBackNavigation({
     source: resolvedSearchParams?.source,
     seasonId: season.id,

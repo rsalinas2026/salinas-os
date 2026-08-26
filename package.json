@@ -12,6 +12,7 @@
     "db:seed:2026": "NODE_OPTIONS=--conditions=react-server tsx scripts/seed-2026-tax-season.ts",
     "db:verify:parity": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-persistence-parity.ts",
     "tax-season:provider:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-operational-tax-season-provider.ts",
+    "tax-season:readers:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-async-operational-readers.ts",
     "settings:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-settings-administration.ts",
     "settings:ui:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-settings-ui.ts"
   },
