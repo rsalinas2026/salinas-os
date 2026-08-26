@@ -8,7 +8,7 @@ import {
   getEnabledSeasonProjects,
   type TaxSeason,
   type TaxSeasonProject,
-} from "./tax-seasons";
+} from "./tax-season-domain";
 
 export type TaxReturnExclusionReason =
   | "outside-selected-season"

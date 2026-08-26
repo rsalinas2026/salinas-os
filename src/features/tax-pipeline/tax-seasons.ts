@@ -12,67 +12,19 @@
  *   ASANA_PROJECT_GID.
  */
 
-export type TaxSeasonStatus = "planned" | "active" | "archived";
+import {
+  getEnabledSeasonProjects,
+  orderTaxSeasonsNewestFirst,
+  type TaxSeason,
+  type TaxSeasonProject,
+} from "./tax-season-domain";
 
-export type TaxSeasonProject = {
-  /**
-   * Internal identifier used by Salinas OS.
-   *
-   * This does not need to match the Asana project GID.
-   */
-  id: string;
-
-  /**
-   * Name displayed inside Salinas OS.
-   */
-  name: string;
-
-  /**
-   * Asana project GID.
-   *
-   * For the active 2026 season, this may come from ASANA_PROJECT_GID
-   * so the current environment configuration continues working.
-   */
-  asanaProjectGid: string;
-
-  /**
-   * Indicates whether Salinas OS should load this project.
-   *
-   * This allows a project to remain registered without contributing
-   * tasks to the active season.
-   */
-  enabled: boolean;
-};
-
-export type TaxSeason = {
-  /**
-   * Stable internal identifier.
-   *
-   * Use this value in URLs, API parameters, filters, and future
-   * database records.
-   */
-  id: string;
-
-  /**
-   * Calendar year represented by the season.
-   */
-  year: number;
-
-  /**
-   * Human-readable name.
-   */
-  name: string;
-
-  /**
-   * Season lifecycle status.
-   */
-  status: TaxSeasonStatus;
-
-  /**
-   * One or more Asana projects belonging to this tax season.
-   */
-  projects: TaxSeasonProject[];
-};
+export {
+  getEnabledSeasonProjects,
+  type TaxSeason,
+  type TaxSeasonProject,
+  type TaxSeasonStatus,
+} from "./tax-season-domain";
 
 /**
  * Reads the legacy project GID from the environment.
@@ -129,7 +81,7 @@ const TAX_SEASONS: TaxSeason[] = [
  * A cloned array is returned so callers cannot modify the registry itself.
  */
 export function getTaxSeasons(): TaxSeason[] {
-  return [...TAX_SEASONS].sort((a, b) => b.year - a.year);
+  return orderTaxSeasonsNewestFirst(TAX_SEASONS);
 }
 
 /**
@@ -201,35 +153,6 @@ export function resolveTaxSeason(seasonId?: string | null): TaxSeason {
   }
 
   return getTaxSeasonById(seasonId);
-}
-
-/**
- * Returns the enabled Asana projects for a tax season.
- */
-export function getEnabledSeasonProjects(
-  season: TaxSeason,
-): TaxSeasonProject[] {
-  const enabledProjects = season.projects.filter((project) => project.enabled);
-
-  if (enabledProjects.length === 0) {
-    throw new Error(
-      `Tax season ${season.id} does not have any enabled Asana projects`,
-    );
-  }
-
-  const projectsWithoutGids = enabledProjects.filter(
-    (project) => !project.asanaProjectGid.trim(),
-  );
-
-  if (projectsWithoutGids.length > 0) {
-    throw new Error(
-      `Tax season ${season.id} has enabled projects without Asana project GIDs. Check the server environment configuration for: ${projectsWithoutGids
-        .map((project) => project.name)
-        .join(", ")}`,
-    );
-  }
-
-  return enabledProjects;
 }
 
 /**
