@@ -78,6 +78,7 @@ type TaxReturnStatusPageProps = {
     status?: string | string[];
     stage?: string | string[];
     search?: string | string[];
+    readiness?: string | string[];
   }>;
 };
 
@@ -142,6 +143,7 @@ export default async function TaxReturnStatusPage({
     status: resolvedSearchParams?.status,
     stage: resolvedSearchParams?.stage,
     search: resolvedSearchParams?.search,
+    readiness: resolvedSearchParams?.readiness,
   });
 
   const taskFields = [

@@ -55,10 +55,12 @@ Run `npm run lint` as an additional quality check.
 
 ## Production deployment
 
-Vercel is the preferred production platform. Configure
+DigitalOcean is the approved production target on the current product roadmap.
+Production deployment infrastructure is not yet implemented. When that phase is
+authorized, configure
 `ASANA_ACCESS_TOKEN`, `ASANA_PROJECT_GID`, `SALINAS_STAFF_PASSWORD`, and
-`SALINAS_AUTH_SECRET` as encrypted server-side environment variables in
-Vercel. Do not place any of these values in source control.
+`SALINAS_AUTH_SECRET` through secure server-side environment management. Do not
+place any of these values in source control.
 
 The Version 1.0 management-testing release uses a shared RCBS staff password.
 Successful login creates a signed, HTTP-only session that expires after eight
@@ -71,6 +73,7 @@ and complete a client-portal smoke test before allowing management use.
 ## Architecture boundary
 
 Salinas OS does not replace Asana and must not become a second practice
-management system. Workflow changes continue to happen in Asana. Application
-changes should be limited to reading, classifying, calculating, and presenting
-that source data.
+management system. Workflow changes continue to happen in Asana. Salinas OS
+provides the intelligence, persistent configuration, reporting, communications,
+automation, and future AI layer around that authoritative workflow data. See
+`docs/PRODUCT_ROADMAP.md` for the approved delivery sequence.

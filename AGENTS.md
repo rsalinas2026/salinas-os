@@ -33,7 +33,21 @@ Do not impose a new architecture based only on these conceptual module names. Ma
 
 ## Immediate Delivery Priorities
 
-The immediate goal is overall tax pipeline visibility. Prioritize accurate, actionable views of workflow state and data completeness before adding broad automation.
+The immediate mission is to complete **RCBS Tax Operations** as a production-ready, year-over-year operating system. It must provide accurate overall Tax Preparation Pipeline intelligence, executive operational visibility, controlled weekly client-facing reporting with manual review, durable configuration and reporting state where required, no-code future Tax Season setup, an always-available DigitalOcean production deployment, and eventually controlled Microsoft 365 communications.
+
+Prioritize accurate, actionable views of workflow state and data completeness before adding broad automation. RCBS Tax Operations is the first mature business module within one modular Salinas OS platform; it is not a separate standalone product.
+
+### No-Code Tax Season Configuration
+
+RCBS must not require a developer, source-code edit, or redeployment when a new Tax Season begins. The approved roadmap requires a persisted management workflow at **Settings → Tax Seasons → Tax Season → Asana Projects** that can:
+
+- create a Tax Season and set its name, year, status, and active/default designation;
+- accept and validate an Asana Project ID through the Asana API and display the validated project name;
+- assign multiple projects to a season;
+- enable, disable, safely remove, or reassign projects; and
+- control deterministic project priority/order.
+
+Do not implement this configuration as another hard-coded registry. Until the persistent Settings workflow is delivered, preserve existing configuration behavior unless a task explicitly authorizes its migration.
 
 Weekly client-facing **PDF Status Reports** are a key near-term deliverable. Reports must be clear, professional, accurate, appropriately branded, and generated from validated source data. They should communicate status, completed work, outstanding client needs, blockers, upcoming milestones, and next actions without exposing internal-only commentary.
 
@@ -46,6 +60,12 @@ Client communication automation must follow this rollout sequence exactly:
 5. Controlled automatic sending
 
 Manual email review is required first. Future Microsoft 365 integration may automatically create email drafts only after the report-generation workflow and content checks are validated. Automatic sending must remain controlled and may be enabled only after draft creation, approval, recipient selection, attachments, permissions, audit logging, failure handling, and operational safeguards have been validated in real use.
+
+### Production-Ready Definition
+
+RCBS Tax Operations is not production-ready merely because the Executive Dashboard works. Production readiness requires reliable canonical tax classification, reliable executive pipeline intelligence, reliable weekly status reporting, approved readiness rules, persistent configuration, no-code future Tax Season setup, production deployment, and a controlled, auditable client-communication workflow.
+
+Follow the approved delivery sequence in `docs/PRODUCT_ROADMAP.md`. Do not pull later-phase persistence, deployment, Microsoft 365, AI, or broader-module work into an earlier contained task without explicit approval.
 
 ## Client Communication Safety
 

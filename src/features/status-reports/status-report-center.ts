@@ -1,6 +1,11 @@
 import type { TaxReturnExclusionReason } from "../tax-pipeline/classify-tax-return";
+import type {
+  ReportReadinessCategory,
+  ReportReadinessResult,
+} from "./report-readiness";
 
 export type StatusReportFilter = "all" | "ready" | "blocked";
+export type ReportReadinessFilter = "all" | ReportReadinessCategory;
 
 export interface StatusReportRecord {
   gid: string;
@@ -13,12 +18,14 @@ export interface StatusReportRecord {
   } | null;
   clientStatusEligible: boolean;
   exclusionReason: TaxReturnExclusionReason | null;
+  reportReadiness: ReportReadinessResult;
 }
 
 export interface StatusReportFilters {
   search: string;
   readiness: StatusReportFilter;
   stage: string;
+  reportReadiness: ReportReadinessFilter;
 }
 
 const EXCLUSION_REASON_LABELS: Record<
@@ -62,13 +69,15 @@ export function filterStatusReportRecords(
     const category = getStatusReportCategory(record);
     const blockLabel = getStatusReportBlockLabel(record) ?? "";
     const projectName = record.sourceProject?.name ?? "";
+    const readinessExplanation = record.reportReadiness.explanation;
 
     const matchesSearch =
       !query ||
       record.name.toLowerCase().includes(query) ||
       record.clientStage.toLowerCase().includes(query) ||
       projectName.toLowerCase().includes(query) ||
-      blockLabel.toLowerCase().includes(query);
+      blockLabel.toLowerCase().includes(query) ||
+      readinessExplanation.toLowerCase().includes(query);
 
     const matchesReadiness =
       filters.readiness === "all" ||
@@ -78,6 +87,35 @@ export function filterStatusReportRecords(
       filters.stage === "all" ||
       record.clientStage === filters.stage;
 
-    return matchesSearch && matchesReadiness && matchesStage;
+    const matchesReportReadiness =
+      filters.reportReadiness === "all" ||
+      record.reportReadiness.category === filters.reportReadiness;
+
+    return (
+      matchesSearch &&
+      matchesReadiness &&
+      matchesStage &&
+      matchesReportReadiness
+    );
   });
+}
+
+export function getReportReadinessCounts(
+  records: StatusReportRecord[],
+): Record<ReportReadinessCategory, number> {
+  const counts: Record<ReportReadinessCategory, number> = {
+    candidate: 0,
+    "attention-required": 0,
+    "not-applicable": 0,
+  };
+
+  for (const record of records) {
+    const category = record.reportReadiness.category;
+
+    if (record.clientStatusEligible && category) {
+      counts[category] += 1;
+    }
+  }
+
+  return counts;
 }

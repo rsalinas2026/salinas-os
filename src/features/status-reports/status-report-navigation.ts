@@ -1,4 +1,7 @@
-import type { StatusReportFilter } from "./status-report-center";
+import type {
+  ReportReadinessFilter,
+  StatusReportFilter,
+} from "./status-report-center";
 
 export type ReportPreviewSource = "status-reports" | "tax-returns";
 
@@ -6,6 +9,7 @@ export interface StatusReportUrlState {
   readiness: StatusReportFilter;
   stage: string;
   search: string;
+  reportReadiness?: ReportReadinessFilter;
 }
 
 interface PreviewNavigationInput {
@@ -14,6 +18,7 @@ interface PreviewNavigationInput {
   status?: QueryValue;
   stage?: QueryValue;
   search?: QueryValue;
+  readiness?: QueryValue;
 }
 
 type QueryValue = string | string[] | null | undefined;
@@ -45,6 +50,22 @@ export function sanitizeStatusReportText(
   );
 }
 
+export function parseReportReadinessFilter(
+  value: QueryValue,
+): ReportReadinessFilter {
+  const normalizedValue = getFirstQueryValue(value);
+
+  if (
+    normalizedValue === "candidate" ||
+    normalizedValue === "attention-required" ||
+    normalizedValue === "not-applicable"
+  ) {
+    return normalizedValue;
+  }
+
+  return "all";
+}
+
 export function buildStatusReportsUrl(
   seasonId: string,
   state: StatusReportUrlState,
@@ -61,6 +82,10 @@ export function buildStatusReportsUrl(
 
   if (state.search) {
     params.set("search", sanitizeStatusReportText(state.search));
+  }
+
+  if (state.reportReadiness && state.reportReadiness !== "all") {
+    params.set("readiness", state.reportReadiness);
   }
 
   return `/status-reports?${params.toString()}`;
@@ -94,6 +119,13 @@ export function buildReportPreviewUrl({
     if (statusState.search) {
       params.set("search", sanitizeStatusReportText(statusState.search));
     }
+
+    if (
+      statusState.reportReadiness &&
+      statusState.reportReadiness !== "all"
+    ) {
+      params.set("readiness", statusState.reportReadiness);
+    }
   }
 
   return `/tax-returns/${encodeURIComponent(taskGid)}?${params.toString()}`;
@@ -108,6 +140,7 @@ export function getReportPreviewBackNavigation(
         readiness: parseStatusReportFilter(input.status),
         stage: sanitizeStatusReportText(input.stage) || "all",
         search: sanitizeStatusReportText(input.search),
+        reportReadiness: parseReportReadinessFilter(input.readiness),
       }),
       label: "Back to Weekly Status Reports",
     };

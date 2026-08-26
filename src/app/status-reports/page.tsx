@@ -12,14 +12,17 @@ import {
 import SeasonSelector from "@/components/SeasonSelector";
 import {
   filterStatusReportRecords,
+  getReportReadinessCounts,
   getStatusReportBlockLabel,
   getStatusReportCategory,
+  type ReportReadinessFilter,
   type StatusReportFilter,
   type StatusReportRecord,
 } from "@/features/status-reports/status-report-center";
 import {
   buildReportPreviewUrl,
   buildStatusReportsUrl,
+  parseReportReadinessFilter,
   parseStatusReportFilter,
   sanitizeStatusReportText,
 } from "@/features/status-reports/status-report-navigation";
@@ -61,12 +64,17 @@ function WeeklyStatusReportCenterContent() {
   const urlReadiness = parseStatusReportFilter(searchParams.get("status"));
   const urlStage =
     sanitizeStatusReportText(searchParams.get("stage")) || "all";
+  const urlReportReadiness = parseReportReadinessFilter(
+    searchParams.get("readiness"),
+  );
 
   const [records, setRecords] = useState<StatusReportRecord[]>([]);
   const [search, setSearch] = useState(urlSearch);
   const [readinessFilter, setReadinessFilter] =
     useState<StatusReportFilter>(urlReadiness);
   const [stageFilter, setStageFilter] = useState(urlStage);
+  const [reportReadinessFilter, setReportReadinessFilter] =
+    useState<ReportReadinessFilter>(urlReportReadiness);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -108,6 +116,7 @@ function WeeklyStatusReportCenterContent() {
     nextSearch: string,
     nextReadiness: StatusReportFilter,
     nextStage: string,
+    nextReportReadiness: ReportReadinessFilter,
   ) {
     window.history.replaceState(
       window.history.state,
@@ -116,6 +125,7 @@ function WeeklyStatusReportCenterContent() {
         search: nextSearch,
         readiness: nextReadiness,
         stage: nextStage,
+        reportReadiness: nextReportReadiness,
       }),
     );
   }
@@ -128,6 +138,10 @@ function WeeklyStatusReportCenterContent() {
     [records],
   );
   const blockedCount = records.length - readyCount;
+  const reportReadinessCounts = useMemo(
+    () => getReportReadinessCounts(records),
+    [records],
+  );
 
   const stages = useMemo(
     () =>
@@ -143,8 +157,9 @@ function WeeklyStatusReportCenterContent() {
         search,
         readiness: readinessFilter,
         stage: stageFilter,
+        reportReadiness: reportReadinessFilter,
       }),
-    [readinessFilter, records, search, stageFilter],
+    [readinessFilter, records, reportReadinessFilter, search, stageFilter],
   );
 
   return (
@@ -181,6 +196,7 @@ function WeeklyStatusReportCenterContent() {
                     search,
                     readiness: readinessFilter,
                     stage: stageFilter,
+                    reportReadiness: reportReadinessFilter,
                   }),
                 )
               }
@@ -227,10 +243,20 @@ function WeeklyStatusReportCenterContent() {
         </section>
 
         {!loading && !error && (
-          <section className="mb-6 grid gap-4 sm:grid-cols-3">
+          <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <SummaryCard label="All records" value={records.length} />
             <SummaryCard label="Ready for Review" value={readyCount} tone="ready" />
             <SummaryCard label="Blocked" value={blockedCount} tone="blocked" />
+            <SummaryCard
+              label="Weekly candidates"
+              value={reportReadinessCounts.candidate}
+              tone="candidate"
+            />
+            <SummaryCard
+              label="Attention required"
+              value={reportReadinessCounts["attention-required"]}
+              tone="attention"
+            />
           </section>
         )}
 
@@ -256,11 +282,78 @@ function WeeklyStatusReportCenterContent() {
                     aria-pressed={isSelected}
                     onClick={() => {
                       setReadinessFilter(value);
-                      replaceStatusReportUrl(search, value, stageFilter);
+                      replaceStatusReportUrl(
+                        search,
+                        value,
+                        stageFilter,
+                        reportReadinessFilter,
+                      );
                     }}
                     className={`flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${
                       isSelected
                         ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                        : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-800"
+                    }`}
+                  >
+                    <span>{label}</span>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs ${
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {count.toLocaleString()}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <fieldset className="mt-5 border-t border-slate-200 pt-5">
+            <legend className="text-sm font-semibold text-slate-700">
+              Weekly report readiness
+            </legend>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Applied only after canonical client-status eligibility.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {(
+                [
+                  ["all", "All readiness", readyCount],
+                  ["candidate", "Candidate", reportReadinessCounts.candidate],
+                  [
+                    "attention-required",
+                    "Attention Required",
+                    reportReadinessCounts["attention-required"],
+                  ],
+                  [
+                    "not-applicable",
+                    "Not Applicable",
+                    reportReadinessCounts["not-applicable"],
+                  ],
+                ] as const
+              ).map(([value, label, count]) => {
+                const isSelected = reportReadinessFilter === value;
+
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      setReportReadinessFilter(value);
+                      replaceStatusReportUrl(
+                        search,
+                        readinessFilter,
+                        stageFilter,
+                        value,
+                      );
+                    }}
+                    className={`flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${
+                      isSelected
+                        ? "border-slate-900 bg-slate-900 text-white shadow-sm"
                         : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-800"
                     }`}
                   >
@@ -292,6 +385,7 @@ function WeeklyStatusReportCenterContent() {
                     value,
                     readinessFilter,
                     stageFilter,
+                    reportReadinessFilter,
                   );
                 }}
                 placeholder="Search client, stage, project or block reason..."
@@ -310,6 +404,7 @@ function WeeklyStatusReportCenterContent() {
                     search,
                     readinessFilter,
                     value,
+                    reportReadinessFilter,
                   );
                 }}
                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -361,6 +456,7 @@ function WeeklyStatusReportCenterContent() {
                       "Progress",
                       "Selected project",
                       "Report eligibility",
+                      "Weekly readiness",
                       "Report action",
                     ].map((heading) => (
                       <th
@@ -381,6 +477,7 @@ function WeeklyStatusReportCenterContent() {
                       search={search}
                       readiness={readinessFilter}
                       stage={stageFilter}
+                      reportReadiness={reportReadinessFilter}
                     />
                   ))}
                 </tbody>
@@ -419,12 +516,14 @@ function StatusReportRow({
   search,
   readiness,
   stage,
+  reportReadiness,
 }: {
   record: StatusReportRecord;
   seasonId: string;
   search: string;
   readiness: StatusReportFilter;
   stage: string;
+  reportReadiness: ReportReadinessFilter;
 }) {
   const category = getStatusReportCategory(record);
   const blockLabel = getStatusReportBlockLabel(record);
@@ -467,6 +566,22 @@ function StatusReportRow({
           <p className="mt-2 text-xs leading-5 text-rose-700">{blockLabel}</p>
         )}
       </td>
+      <td className="max-w-72 px-5 py-4">
+        {record.reportReadiness.category ? (
+          <>
+            <ReportReadinessBadge
+              category={record.reportReadiness.category}
+            />
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              {record.reportReadiness.explanation}
+            </p>
+          </>
+        ) : (
+          <p className="text-xs leading-5 text-slate-400">
+            Evaluated only after canonical eligibility.
+          </p>
+        )}
+      </td>
       <td className="px-5 py-4">
         {category === "ready" ? (
           <Link
@@ -478,6 +593,7 @@ function StatusReportRow({
                 search,
                 readiness,
                 stage,
+                reportReadiness,
               },
             })}
             className="inline-flex rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
@@ -494,6 +610,31 @@ function StatusReportRow({
   );
 }
 
+function ReportReadinessBadge({
+  category,
+}: {
+  category: NonNullable<StatusReportRecord["reportReadiness"]["category"]>;
+}) {
+  const labels = {
+    candidate: "Candidate",
+    "attention-required": "Attention Required",
+    "not-applicable": "Not Applicable",
+  } as const;
+  const styles = {
+    candidate: "border-blue-200 bg-blue-50 text-blue-700",
+    "attention-required": "border-amber-200 bg-amber-50 text-amber-800",
+    "not-applicable": "border-slate-200 bg-slate-100 text-slate-600",
+  } as const;
+
+  return (
+    <span
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${styles[category]}`}
+    >
+      {labels[category]}
+    </span>
+  );
+}
+
 function SummaryCard({
   label,
   value,
@@ -501,12 +642,14 @@ function SummaryCard({
 }: {
   label: string;
   value: number;
-  tone?: "neutral" | "ready" | "blocked";
+  tone?: "neutral" | "ready" | "blocked" | "candidate" | "attention";
 }) {
   const styles = {
     neutral: "border-slate-200 bg-white text-slate-950",
     ready: "border-emerald-200 bg-emerald-50 text-emerald-900",
     blocked: "border-rose-200 bg-rose-50 text-rose-900",
+    candidate: "border-blue-200 bg-blue-50 text-blue-900",
+    attention: "border-amber-200 bg-amber-50 text-amber-900",
   };
 
   return (

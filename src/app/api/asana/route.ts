@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { evaluateReportReadiness } from "@/features/status-reports/report-readiness";
 import { classifyTaxReturnTask } from "@/features/tax-pipeline/classify-tax-return";
 import { getTaxSeasonTasks } from "@/features/tax-pipeline/tax-pipeline.service";
 import {
@@ -30,6 +31,10 @@ export async function GET(request: NextRequest) {
         });
 
       const classification = classifyTaxReturnTask(task, season);
+      const reportReadiness = evaluateReportReadiness({
+        classification,
+        task,
+      });
       const asanaSectionName =
         classification.selectedSectionName ?? "No section";
 
@@ -77,6 +82,7 @@ export async function GET(request: NextRequest) {
         clientStatusEligible:
           classification.clientStatusEligible,
         exclusionReason: classification.exclusionReason,
+        reportReadiness,
       };
     });
 
