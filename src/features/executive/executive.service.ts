@@ -10,6 +10,7 @@ import type {
 import {
   getTaxSeasonTasks,
   type AsanaTask,
+  type SeasonTaskCollection,
 } from "@/features/tax-pipeline/tax-pipeline.service";
 import { resolveOperationalTaxSeason } from "@/features/tax-pipeline/configuration/operational-tax-season-configuration";
 import {
@@ -214,7 +215,15 @@ export async function buildExecutiveDashboard(
 
   const collection = await getTaxSeasonTasks(season);
 
-  const now = new Date();
+  return buildExecutiveDashboardFromCollection(collection);
+}
+
+/** Builds Executive metrics from one resolved, reusable task snapshot. */
+export function buildExecutiveDashboardFromCollection(
+  collection: SeasonTaskCollection,
+  now = new Date(),
+): ExecutiveDashboardData {
+  const { season } = collection;
 
   const classifiedTasks = collection.tasks.map((task) =>
     ({
