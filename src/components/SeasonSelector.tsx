@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { resolveClientTaxSeason } from "@/features/tax-pipeline/client-season-resolution";
 
 type TaxSeasonStatus = "planned" | "active" | "archived";
 
@@ -23,12 +24,16 @@ type TaxSeasonsApiResponse = {
 type SeasonSelectorProps = {
   selectedSeasonId?: string | null;
   onSeasonChange: (seasonId: string) => void;
+  onSeasonResolved?: (seasonId: string) => void;
+  onSeasonResolutionError?: (message: string) => void;
   disabled?: boolean;
 };
 
 export default function SeasonSelector({
   selectedSeasonId,
   onSeasonChange,
+  onSeasonResolved,
+  onSeasonResolutionError,
   disabled = false,
 }: SeasonSelectorProps) {
   const [seasons, setSeasons] = useState<TaxSeason[]>([]);
@@ -75,36 +80,52 @@ export default function SeasonSelector({
     void loadSeasons();
   }, []);
 
-  const currentSeasonId = useMemo(() => {
-    const requestedSeasonId = selectedSeasonId?.trim() ?? "";
-
-    if (
-      requestedSeasonId &&
-      seasons.some((season) => season.id === requestedSeasonId)
-    ) {
-      return requestedSeasonId;
+  const resolution = useMemo(() => {
+    if (loading || error) {
+      return null;
     }
 
-    if (
-      activeSeasonId &&
-      seasons.some((season) => season.id === activeSeasonId)
-    ) {
-      return activeSeasonId;
-    }
+    return resolveClientTaxSeason({
+      requestedSeasonId: selectedSeasonId,
+      activeSeasonId,
+      availableSeasonIds: seasons.map((season) => season.id),
+    });
+  }, [activeSeasonId, error, loading, seasons, selectedSeasonId]);
 
-    return seasons[0]?.id ?? "";
-  }, [activeSeasonId, seasons, selectedSeasonId]);
+  const currentSeasonId = resolution?.success ? resolution.seasonId : "";
+  const resolutionError =
+    resolution && !resolution.success ? resolution.error : "";
 
   useEffect(() => {
-    if (!currentSeasonId || initializedSeasonRef.current === currentSeasonId) {
+    const displayedError = error || resolutionError;
+
+    if (displayedError) {
+      onSeasonResolutionError?.(displayedError);
       return;
     }
 
-    if (!selectedSeasonId?.trim()) {
+    if (!currentSeasonId) {
+      return;
+    }
+
+    onSeasonResolved?.(currentSeasonId);
+
+    if (
+      !selectedSeasonId?.trim() &&
+      initializedSeasonRef.current !== currentSeasonId
+    ) {
       initializedSeasonRef.current = currentSeasonId;
       onSeasonChange(currentSeasonId);
     }
-  }, [currentSeasonId, onSeasonChange, selectedSeasonId]);
+  }, [
+    currentSeasonId,
+    error,
+    onSeasonChange,
+    onSeasonResolutionError,
+    onSeasonResolved,
+    resolutionError,
+    selectedSeasonId,
+  ]);
 
   if (loading) {
     return (
@@ -119,14 +140,14 @@ export default function SeasonSelector({
     );
   }
 
-  if (error) {
+  if (error || resolutionError) {
     return (
       <div className="min-w-[220px] rounded-xl border border-red-200 bg-red-50 px-4 py-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-red-500">
           Tax Season
         </p>
         <p className="mt-1 text-sm font-semibold text-red-700">
-          Unable to load
+          {resolutionError || "Unable to load"}
         </p>
       </div>
     );

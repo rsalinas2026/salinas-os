@@ -16,6 +16,8 @@
     "tax-season:postgres:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-postgres-tax-season-provider.ts",
     "tax-season:shadow:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-operational-shadow-parity.ts",
     "tax-season:selection:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-operational-provider-selection.ts",
+    "tax-season:client-default:verify": "tsx scripts/verify-client-default-season.ts",
+    "report-preview:verify": "tsx scripts/verify-report-preview-error-handling.ts",
     "settings:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-settings-administration.ts",
     "settings:ui:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-settings-ui.ts"
   },

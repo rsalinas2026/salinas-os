@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asanaFetch } from "@/lib/asana/asana-client";
+import { getReportPreviewAsanaErrorDisposition } from "@/features/client-portal/report-preview-asana-error";
 import { classifyTaxReturnTask } from "@/features/tax-pipeline/classify-tax-return";
 import { resolveOperationalTaxSeason } from "@/features/tax-pipeline/configuration/operational-tax-season-configuration";
 import { getClientStatus } from "@/features/tax-pipeline/progress/client-status";
@@ -164,11 +165,33 @@ export default async function TaxReturnStatusPage({
     "custom_fields.enum_value.name",
   ].join(",");
 
-  const response = await asanaFetch<AsanaResponse<AsanaTask>>(
-    `/tasks/${encodeURIComponent(gid)}?opt_fields=${encodeURIComponent(
-      taskFields,
-    )}`,
-  );
+  let response: AsanaResponse<AsanaTask>;
+
+  try {
+    response = await asanaFetch<AsanaResponse<AsanaTask>>(
+      `/tasks/${encodeURIComponent(gid)}?opt_fields=${encodeURIComponent(
+        taskFields,
+      )}`,
+    );
+  } catch (error) {
+    const disposition = getReportPreviewAsanaErrorDisposition(error);
+
+    if (disposition === "not-found") {
+      notFound();
+    }
+
+    if (disposition === "operational-authentication") {
+      throw new Error(
+        "Report preview is unavailable due to an operational configuration error.",
+      );
+    }
+
+    if (disposition === "temporarily-unavailable") {
+      throw new Error("Report preview is temporarily unavailable.");
+    }
+
+    throw new Error("Report preview could not be loaded.");
+  }
 
   const task = response.data;
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -59,7 +60,13 @@ function StatusReportsLoadingFallback() {
 function WeeklyStatusReportCenterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selectedSeasonId = searchParams.get("season") ?? "2026";
+  const requestedSeasonId = searchParams.get("season")?.trim() ?? "";
+  const [resolvedSeasonId, setResolvedSeasonId] = useState("");
+  const selectedSeasonId =
+    resolvedSeasonId &&
+    (!requestedSeasonId || resolvedSeasonId === requestedSeasonId)
+      ? resolvedSeasonId
+      : "";
   const urlSearch = sanitizeStatusReportText(searchParams.get("search"));
   const urlReadiness = parseStatusReportFilter(searchParams.get("status"));
   const urlStage =
@@ -78,8 +85,17 @@ function WeeklyStatusReportCenterContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const handleSeasonResolutionError = useCallback((message: string) => {
+    setError(message);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     async function loadStatusReports() {
+      if (!selectedSeasonId) {
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
@@ -189,7 +205,7 @@ function WeeklyStatusReportCenterContent() {
 
           <div className="flex flex-wrap items-end gap-3">
             <SeasonSelector
-              selectedSeasonId={selectedSeasonId}
+              selectedSeasonId={requestedSeasonId}
               onSeasonChange={(seasonId) =>
                 router.push(
                   buildStatusReportsUrl(seasonId, {
@@ -200,16 +216,26 @@ function WeeklyStatusReportCenterContent() {
                   }),
                 )
               }
+              onSeasonResolved={setResolvedSeasonId}
+              onSeasonResolutionError={handleSeasonResolutionError}
               disabled={loading}
             />
             <Link
-              href={`/?season=${encodeURIComponent(selectedSeasonId)}`}
+              href={
+                selectedSeasonId
+                  ? `/?season=${encodeURIComponent(selectedSeasonId)}`
+                  : "/"
+              }
               className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
             >
               Executive Dashboard
             </Link>
             <Link
-              href={`/tax-returns?season=${encodeURIComponent(selectedSeasonId)}`}
+              href={
+                selectedSeasonId
+                  ? `/tax-returns?season=${encodeURIComponent(selectedSeasonId)}`
+                  : "/tax-returns"
+              }
               className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
             >
               Tax Returns

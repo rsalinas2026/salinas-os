@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -290,13 +291,20 @@ function TaxReturnsLoadingFallback() {
 function TaxReturnsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const requestedSeasonId = searchParams.get("season")?.trim() ?? "";
+  const [resolvedSeasonId, setResolvedSeasonId] = useState("");
   const selectedSeasonId =
-    searchParams.get("season") ?? "2026";
-  const statusReportsUrl = buildStatusReportsUrl(selectedSeasonId, {
-    readiness: "all",
-    stage: "all",
-    search: "",
-  });
+    resolvedSeasonId &&
+    (!requestedSeasonId || resolvedSeasonId === requestedSeasonId)
+      ? resolvedSeasonId
+      : "";
+  const statusReportsUrl = selectedSeasonId
+    ? buildStatusReportsUrl(selectedSeasonId, {
+        readiness: "all",
+        stage: "all",
+        search: "",
+      })
+    : "/status-reports";
 
   const [tasks, setTasks] = useState<TaxReturnTask[]>([]);
   const [search, setSearch] = useState("");
@@ -304,8 +312,17 @@ function TaxReturnsPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const handleSeasonResolutionError = useCallback((message: string) => {
+    setError(message);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     async function loadTaxReturns() {
+      if (!selectedSeasonId) {
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
@@ -425,7 +442,7 @@ function TaxReturnsPageContent() {
 
           <div className="flex flex-wrap items-end gap-3">
             <SeasonSelector
-              selectedSeasonId={selectedSeasonId}
+              selectedSeasonId={requestedSeasonId}
               onSeasonChange={(seasonId) =>
                 router.push(
                   `/tax-returns?season=${encodeURIComponent(
@@ -433,13 +450,17 @@ function TaxReturnsPageContent() {
                   )}`,
                 )
               }
+              onSeasonResolved={setResolvedSeasonId}
+              onSeasonResolutionError={handleSeasonResolutionError}
               disabled={loading}
             />
 
             <Link
-              href={`/?season=${encodeURIComponent(
-                selectedSeasonId,
-              )}`}
+              href={
+                selectedSeasonId
+                  ? `/?season=${encodeURIComponent(selectedSeasonId)}`
+                  : "/"
+              }
               className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
             >
               Executive Dashboard

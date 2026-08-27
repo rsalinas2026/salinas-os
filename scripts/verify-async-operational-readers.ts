@@ -144,7 +144,11 @@ async function main() {
     "src/app/tax-returns/page.tsx",
     "src/app/status-reports/page.tsx",
   ]) {
-    assert.ok(readFileSync(clientPath, "utf8").includes('"2026"'));
+    const clientSource = readFileSync(clientPath, "utf8");
+    assert.ok(clientSource.includes("requestedSeasonId"));
+    assert.ok(clientSource.includes("resolvedSeasonId"));
+    assert.ok(!clientSource.includes('?? "2026"'));
+    assert.ok(!clientSource.includes('|| "2026"'));
   }
 
   const classifierSource = readFileSync(

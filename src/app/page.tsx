@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
   useCallback,
@@ -228,13 +228,15 @@ function getInsightLabel(
 }
 
 function ExecutiveDashboardContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [
-    selectedSeasonId,
-    setSelectedSeasonId,
-  ] = useState(
-    () => searchParams.get("season")?.trim() || "2026",
-  );
+  const requestedSeasonId = searchParams.get("season")?.trim() ?? "";
+  const [resolvedSeasonId, setResolvedSeasonId] = useState("");
+  const selectedSeasonId =
+    resolvedSeasonId &&
+    (!requestedSeasonId || resolvedSeasonId === requestedSeasonId)
+      ? resolvedSeasonId
+      : "";
 
   const [
     dashboard,
@@ -247,20 +249,16 @@ function ExecutiveDashboardContent() {
 
   const handleSeasonChange = useCallback(
     (seasonId: string) => {
-      setSelectedSeasonId(seasonId);
-
-      const url = new URL(window.location.href);
-
-      url.searchParams.set("season", seasonId);
-
-      window.history.replaceState(
-        {},
-        "",
-        url.toString(),
-      );
+      router.replace(`/?season=${encodeURIComponent(seasonId)}`);
     },
-    [],
+    [router],
   );
+
+  const handleSeasonResolutionError = useCallback((message: string) => {
+    setError(message);
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
 
   const loadDashboard = useCallback(
     async (showFullLoading: boolean) => {
@@ -366,8 +364,10 @@ function ExecutiveDashboardContent() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <SeasonSelector
-              selectedSeasonId={selectedSeasonId}
+              selectedSeasonId={requestedSeasonId}
               onSeasonChange={handleSeasonChange}
+              onSeasonResolved={setResolvedSeasonId}
+              onSeasonResolutionError={handleSeasonResolutionError}
               disabled={loading || refreshing}
             />
 
